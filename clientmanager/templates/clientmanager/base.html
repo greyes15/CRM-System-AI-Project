@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>{% block title %}My Site{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="{% static 'clientmanager/assets/bootstrap/css/bootstrap.min.css' %}">
+
+    <!-- Google Fonts (leave this unchanged) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i&amp;display=swap">
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="{% static 'clientmanager/assets/fonts/fontawesome-all.min.css' %}">
+
+    <!-- Custom Overrides -->
+    <link rel="stylesheet" href="{% static 'clientmanager/assets/css/bss-overrides.css' %}">
+	  {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% include 'clientmanager/navbar.html' %}
+
+        {% block content %}
+        {% endblock %}
+
+    <!-- JS Scripts -->
+    <script src="{% static 'clientmanager/assets/bootstrap/js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'clientmanager/assets/js/chart.min.js' %}"></script>
+    <script src="{% static 'clientmanager/assets/js/theme.js' %}"></script>
+    <script src="{% static 'clientmanager/assets/js/bs-init.js' %}"></script>
+	  {% block extra_js %}{% endblock %}
+
+</body>
+
+	<footer class="bg-white sticky-footer mt-auto">
+		<div class="container my-auto">
+			<div class="text-center my-auto copyright">
+				<span>Copyright © Brand 2025 BLUE</span>
+			</div>
+		</div>
+	</footer>
+</html>

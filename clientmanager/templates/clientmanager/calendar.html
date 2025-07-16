@@ -1,0 +1,181 @@
+{% extends "clientmanager/base.html" %}
+{% load static %}
+
+{% block title %}Calendar{% endblock %}
+{% block extra_head %}
+  <style>
+  {#
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f7f9;
+      margin: 0;
+      padding: 20px;
+    } #}
+
+    .calendar-container {
+      max-width: 800px;
+      margin: auto;
+      background-color: white;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      padding: 20px;
+    } 
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .calendar-header h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-top: 20px;
+    }
+
+    .day-name, .day {
+      text-align: center;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .day-name {
+      font-weight: bold;
+      background-color: #e8ebf0;
+    }
+
+    .day {
+      background-color: #ffffff;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      height: 80px;
+      position: relative;
+    }
+
+    .day:hover {
+      background-color: #e3f3ff;
+    }
+
+    .event-dot {
+      position: absolute;
+      bottom: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 8px;
+      background-color: #4caf50;
+      border-radius: 50%;
+    }
+{#
+    .sidebar {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f1faff;
+      border-left: 4px solid #0077cc;
+      display: none;
+    } #}
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+	<div class="calendar-container">
+	  <div class="calendar-header">
+		<h2>July 2025</h2>
+		<span>Click a day to view schedule</span>
+	  </div>
+
+	  <div class="calendar-grid" id="calendarGrid">
+		<!-- Days of week -->
+		<div class="day-name">Sun</div>
+		<div class="day-name">Mon</div>
+		<div class="day-name">Tue</div>
+		<div class="day-name">Wed</div>
+		<div class="day-name">Thu</div>
+		<div class="day-name">Fri</div>
+		<div class="day-name">Sat</div>
+		<!-- Days will be populated by JS -->
+	  </div>
+
+	  <div class="sidebar" id="sidebar">
+		<h3>Events for <span id="selectedDate"></span></h3>
+		<ul id="eventList">
+		  <!-- Events will go here -->
+		</ul>
+	  </div>
+	</div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+  const calendarGrid = document.getElementById('calendarGrid');
+  const sidebar = document.getElementById('sidebar');
+  const selectedDate = document.getElementById('selectedDate');
+  const eventList = document.getElementById('eventList');
+
+  // Fake events for simulation
+  const fakeEvents = {
+    "2025-07-02": ["Team Meeting at 10AM", "Call with Client A"],
+    "2025-07-14": ["Project Deadline"],
+    "2025-07-21": ["HR Check-in", "Product Demo at 3PM"]
+  };
+
+  function populateCalendar() {
+    const daysInMonth = 31;
+    const startDay = 2; // July 1, 2025 is a Tuesday (index 2)
+
+    // Add blank slots for days before the 1st
+    for (let i = 0; i < startDay; i++) {
+      const blank = document.createElement('div');
+      blank.classList.add('day');
+      blank.style.backgroundColor = '#f9f9f9';
+      calendarGrid.appendChild(blank);
+    }
+
+    // Add day cells
+    for (let day = 1; day <= daysInMonth; day++) {
+      const cell = document.createElement('div');
+      cell.classList.add('day');
+      cell.textContent = day;
+
+      const key = `2025-07-${day.toString().padStart(2, '0')}`;
+      if (fakeEvents[key]) {
+        const dot = document.createElement('div');
+        dot.classList.add('event-dot');
+        cell.appendChild(dot);
+      }
+
+      cell.addEventListener('click', () => showEventsForDate(key));
+      calendarGrid.appendChild(cell);
+    }
+  }
+
+  function showEventsForDate(dateKey) {
+    selectedDate.textContent = dateKey;
+    eventList.innerHTML = "";
+
+    if (fakeEvents[dateKey]) {
+      fakeEvents[dateKey].forEach(event => {
+        const li = document.createElement('li');
+        li.textContent = event;
+        eventList.appendChild(li);
+      });
+    } else {
+      const li = document.createElement('li');
+      li.textContent = "No events scheduled.";
+      eventList.appendChild(li);
+    }
+
+    sidebar.style.display = 'block';
+  }
+
+  populateCalendar();
+</script>
+{% endblock %}
