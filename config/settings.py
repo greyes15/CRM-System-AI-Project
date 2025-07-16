@@ -20,13 +20,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-3e+1y+f1&1=#j4zzl0f*+sle7aw3u8v!i6)5khzf!_-^!vv9wk"
+SECRET_KEY = "*tzi+u9r2g-d8(1*uco5#15uy#f3#pba2gi9rny#bxy4t_!qcy"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-#ALLOWED_HOSTS = ['CRMSystemAISTMARYTX.onrender.com']
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['CRMSystemAISTMARYTX.onrender.com']
+#ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 # Application definition
 
@@ -70,14 +70,21 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 
-# Database
+# Database postgresql://crm_ai_project_user:RkrCqqjjEMKA4wTJ0TNkx50NOYK6R0ue@dpg-d1ru5d6r433s738km2eg-a/crm_ai_project
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+#DATABASES = {
+#    "default": {
+#        "ENGINE": "django.db.backends.sqlite3",
+#        "NAME": BASE_DIR / "db.sqlite3",
+#    }
+#}
+
+import dj_database_url
+import os
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    'default': dj_database_url.config(default=os.environ.get('postgresql://crm_ai_project_user:RkrCqqjjEMKA4wTJ0TNkx50NOYK6R0ue@dpg-d1ru5d6r433s738km2eg-a/crm_ai_project'))
 }
 
 
