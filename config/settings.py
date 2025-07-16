@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +21,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "*tzi+u9r2g-d8(1*uco5#15uy#f3#pba2gi9rny#bxy4t_!qcy"
+SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+ALLOWED_HOSTS = ['crmsystemaistmarytx.onrender.com', '127.0.0.1', 'localhost']
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -41,7 +45,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -51,6 +56,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "config.urls"
+WSGI_APPLICATION = 'config.wsgi.application'
 
 TEMPLATES = [
     {
@@ -80,13 +86,13 @@ WSGI_APPLICATION = "config.wsgi.application"
 #    }
 #}
 
-import dj_database_url
-import os
 
 DATABASES = {
-    'default': dj_database_url.config(default=os.environ.get('postgresql://crm_ai_project_user:RkrCqqjjEMKA4wTJ0TNkx50NOYK6R0ue@dpg-d1ru5d6r433s738km2eg-a/crm_ai_project'))
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
