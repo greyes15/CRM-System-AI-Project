@@ -25,8 +25,8 @@ SECRET_KEY = "django-insecure-3e+1y+f1&1=#j4zzl0f*+sle7aw3u8v!i6)5khzf!_-^!vv9wk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['CRMSystemAISTMARYTX.onrender.com']
-
+#ALLOWED_HOSTS = ['CRMSystemAISTMARYTX.onrender.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 # Application definition
 
