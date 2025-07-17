@@ -30,7 +30,7 @@ def calendar_view(request):
     return render(request, 'clientmanager/calendar.html')
     
 def calendar2_view(request):
-    return render(request, 'clientmanager/calendar2.html')
+    return render(request, 'clientmanager/Calendar2.html')
     
 #def client_engagement_dashboard_view(request):
 #    return render(request, 'clientmanager/client_engagement_dashboard.html')
