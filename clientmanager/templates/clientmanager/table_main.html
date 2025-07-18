@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Data Table</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .entries-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .entries-control label {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .entries-control select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background: white;
+            font-size: 14px;
+        }
+
+        .search-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-control label {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .search-control input {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            border-top: 1px solid #e9ecef;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        tr:nth-child(even) {
+            background-color: #fdfdfe;
+        }
+
+        tr:nth-child(even):hover {
+            background-color: #f8f9fa;
+        }
+
+        .table-footer {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            background: white;
+            color: #495057;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .pagination button.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .pagination button.active:hover {
+            background: #0056b3;
+            border-color: #0056b3;
+        }
+
+        .info-text {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .table-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .table-footer {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .pagination {
+                justify-content: center;
+            }
+
+            .search-control input {
+                min-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="table-header">
+            <div class="entries-control">
+                <label for="entriesSelect">Show</label>
+                <select id="entriesSelect">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+                <label>entries</label>
+            </div>
+            <div class="search-control">
+                <label for="searchInput">Search:</label>
+                <input type="text" id="searchInput" placeholder="Search employees...">
+            </div>
+        </div>
+        
+        <div class="table-wrapper">
+            <table id="employeeTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Position</th>
+                        <th>Office</th>
+                        <th>Age</th>
+                        <th>Start Date</th>
+                        <th>Salary</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="table-footer">
+            <div class="info-text" id="infoText">
+                Showing 1 to 10 of 0 entries
+            </div>
+            <div class="pagination" id="pagination">
+                <!-- Pagination buttons will be generated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample employee data
+        const employeeData = [
+            { name: "Airi Satou", position: "Accountant", office: "Tokyo", age: 33, startDate: "2008/11/28", salary: "$162,700" },
+            { name: "Angelica Ramos", position: "Chief Executive Officer (CEO)", office: "London", age: 47, startDate: "2009/10/09", salary: "$1,200,000" },
+            { name: "Ashton Cox", position: "Junior Technical Author", office: "San Francisco", age: 66, startDate: "2009/01/12", salary: "$86,000" },
+            { name: "Bradley Greer", position: "Software Engineer", office: "London", age: 41, startDate: "2012/10/13", salary: "$132,000" },
+            { name: "Brenden Wagner", position: "Software Engineer", office: "San Francisco", age: 28, startDate: "2011/06/07", salary: "$206,850" },
+            { name: "Brielle Williamson", position: "Integration Specialist", office: "New York", age: 61, startDate: "2012/12/02", salary: "$372,000" },
+            { name: "Bruno Nash", position: "Software Engineer", office: "London", age: 38, startDate: "2011/05/03", salary: "$163,500" },
+            { name: "Caesar Vance", position: "Pre-Sales Support", office: "New York", age: 21, startDate: "2011/12/12", salary: "$106,450" },
+            { name: "Cara Stevens", position: "Sales Assistant", office: "New York", age: 46, startDate: "2011/12/06", salary: "$145,600" },
+            { name: "Cedric Kelly", position: "Senior Javascript Developer", office: "Edinburgh", age: 22, startDate: "2012/03/29", salary: "$433,060" },
+            { name: "Charde Marshall", position: "Regional Director", office: "San Francisco", age: 36, startDate: "2008/10/16", salary: "$470,600" },
+            { name: "Colleen Hurst", position: "Javascript Developer", office: "San Francisco", age: 39, startDate: "2009/09/15", salary: "$205,500" },
+            { name: "Dai Rios", position: "Personnel Lead", office: "Edinburgh", age: 35, startDate: "2012/09/26", salary: "$217,500" },
+            { name: "Donna Snider", position: "Customer Support", office: "New York", age: 27, startDate: "2011/01/25", salary: "$112,000" },
+            { name: "Doris Wilder", position: "Sales Assistant", office: "Sidney", age: 23, startDate: "2010/09/20", salary: "$85,600" },
+            { name: "Finn Camacho", position: "Support Engineer", office: "San Francisco", age: 47, startDate: "2009/07/07", salary: "$87,500" },
+            { name: "Fiona Green", position: "Chief Operating Officer (COO)", office: "San Francisco", age: 48, startDate: "2010/03/11", salary: "$850,000" },
+            { name: "Garrett Winters", position: "Accountant", office: "Tokyo", age: 63, startDate: "2011/07/25", salary: "$170,750" },
+            { name: "Gavin Joyce", position: "Developer", office: "Edinburgh", age: 42, startDate: "2010/12/22", salary: "$92,575" },
+            { name: "Gloria Little", position: "Systems Administrator", office: "New York", age: 59, startDate: "2009/04/10", salary: "$237,500" },
+            { name: "Haley Kennedy", position: "Senior Marketing Designer", office: "London", age: 43, startDate: "2012/12/18", salary: "$313,500" },
+            { name: "Hermione Butler", position: "Regional Director", office: "London", age: 47, startDate: "2011/03/21", salary: "$356,250" },
+            { name: "Herrod Chandler", position: "Sales Assistant", office: "San Francisco", age: 59, startDate: "2012/08/06", salary: "$137,500" },
+            { name: "Hope Fuentes", position: "Secretary", office: "San Francisco", age: 41, startDate: "2010/02/12", salary: "$109,850" },
+            { name: "Howard Hatfield", position: "Office Manager", office: "San Francisco", age: 51, startDate: "2008/12/16", salary: "$164,500" }
+        ];
+
+        // Table state
+        let currentPage = 1;
+        let entriesPerPage = 10;
+        let filteredData = [...employeeData];
+        let searchQuery = '';
+
+        // DOM elements
+        const tableBody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+        const entriesSelect = document.getElementById('entriesSelect');
+        const pagination = document.getElementById('pagination');
+        const infoText = document.getElementById('infoText');
+
+        // Filter data based on search query
+        function filterData(query) {
+            if (!query) {
+                filteredData = [...employeeData];
+                return;
+            }
+            
+            filteredData = employeeData.filter(employee => 
+                Object.values(employee).some(value => 
+                    value.toString().toLowerCase().includes(query.toLowerCase())
+                )
+            );
+        }
+
+        // Render table rows
+        function renderTable() {
+            const startIndex = (currentPage - 1) * entriesPerPage;
+            const endIndex = startIndex + entriesPerPage;
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            if (pageData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="no-results">No matching records found</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = pageData.map(employee => `
+                <tr>
+                    <td>${employee.name}</td>
+                    <td>${employee.position}</td>
+                    <td>${employee.office}</td>
+                    <td>${employee.age}</td>
+                    <td>${employee.startDate}</td>
+                    <td>${employee.salary}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Render pagination controls
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredData.length / entriesPerPage);
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `
+                <button ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">
+                    Previous
+                </button>
+            `;
+
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                paginationHTML += `<button onclick="changePage(1)">1</button>`;
+                if (startPage > 2) {
+                    paginationHTML += `<span>...</span>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `
+                    <button ${i === currentPage ? 'class="active"' : ''} onclick="changePage(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHTML += `<span>...</span>`;
+                }
+                paginationHTML += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
+            }
+
+            // Next button
+            paginationHTML += `
+                <button ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">
+                    Next
+                </button>
+            `;
+
+            pagination.innerHTML = paginationHTML;
+        }
+
+        // Update info text
+        function updateInfoText() {
+            const startIndex = (currentPage - 1) * entriesPerPage + 1;
+            const endIndex = Math.min(currentPage * entriesPerPage, filteredData.length);
+            const total = filteredData.length;
+
+            if (total === 0) {
+                infoText.textContent = 'Showing 0 to 0 of 0 entries';
+            } else {
+                infoText.textContent = `Showing ${startIndex} to ${endIndex} of ${total} entries`;
+                if (searchQuery) {
+                    infoText.textContent += ` (filtered from ${employeeData.length} total entries)`;
+                }
+            }
+        }
+
+        // Change page
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredData.length / entriesPerPage);
+            if (page < 1 || page > totalPages) return;
+            
+            currentPage = page;
+            renderTable();
+            renderPagination();
+            updateInfoText();
+        }
+
+        // Update table display
+        function updateTable() {
+            currentPage = 1; // Reset to first page
+            renderTable();
+            renderPagination();
+            updateInfoText();
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            filterData(searchQuery);
+            updateTable();
+        });
+
+        entriesSelect.addEventListener('change', (e) => {
+            entriesPerPage = parseInt(e.target.value);
+            updateTable();
+        });
+
+        // Initial render
+        filterData('');
+        updateTable();
+
+        // Make changePage function global
+        window.changePage = changePage;
+    </script>
+</body>
+</html>

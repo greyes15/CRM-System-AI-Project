@@ -32,6 +32,9 @@ def calendar_view(request):
 def calendar2_view(request):
     return render(request, 'clientmanager/Calendar2.html')
     
+def team_task_view(request):
+    return render(request, 'clientmanager/team_task.html')
+    
 #def client_engagement_dashboard_view(request):
 #    return render(request, 'clientmanager/client_engagement_dashboard.html')
     
@@ -47,3 +50,51 @@ def reporting_page_view(request):
 def project_managment_page_view(request):
     return render(request, 'clientmanager/Project_management_page.html')
     
+@xframe_options_sameorigin
+def calendar2_main_view(request):
+    return render(request, 'clientmanager/calendar2_main.html')
+    
+@xframe_options_sameorigin
+def table_main_view(request):
+    return render(request, 'clientmanager/table_main.html')
+    
+@xframe_options_sameorigin
+def profile_main_view(request):
+    return render(request, 'clientmanager/profile_main.html')
+    
+@xframe_options_sameorigin
+def team_task_main_view(request):
+    return render(request, 'clientmanager/team_task_main.html')
+    
+@xframe_options_sameorigin
+def AIChatBox_view(request):
+    return render(request, 'clientmanager/AIChatBox.html')
+    
+import os
+import requests
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+import json
+
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')  # Read from environment
+
+@csrf_exempt
+@require_POST
+def chat_api(request):
+    data = json.loads(request.body)
+    user_message = data.get("message")
+
+    response = requests.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": "gpt-4o",
+            "messages": [{"role": "user", "content": user_message}],
+        }
+    )
+
+    return JsonResponse(response.json())

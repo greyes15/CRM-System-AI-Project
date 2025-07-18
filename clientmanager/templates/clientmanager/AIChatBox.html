@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Chat Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 400px;
+            height: 600px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background-color: #2e3a59;
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .api-key-notice {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px 15px;
+            font-size: 12px;
+            border-bottom: 1px solid #ffeaa7;
+            text-align: center;
+        }
+
+        .chat-body {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            line-height: 1.4;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user {
+            align-self: flex-end;
+            background-color: #daf0ff;
+        }
+
+        .agent {
+            align-self: flex-start;
+            background-color: #eeeeee;
+        }
+
+        .typing-indicator {
+            align-self: flex-start;
+            background-color: #eeeeee;
+            padding: 10px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background-color: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .dot:nth-child(1) { animation-delay: 0s; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+
+        .error-message {
+            align-self: flex-start;
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            max-width: 75%;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            background-color: #fafafa;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .chat-input input:focus {
+            border-color: #2e3a59;
+        }
+
+        .chat-input button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            background-color: #2e3a59;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .chat-input button:hover {
+            background-color: #1c2740;
+        }
+
+        .chat-input button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .chat-container {
+                width: 100%;
+                max-width: 100%;
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+
+            .chat-header {
+                padding: 12px;
+            }
+
+            .chat-body {
+                padding: 12px;
+            }
+
+            .chat-input {
+                padding: 8px;
+            }
+
+            .message {
+                max-width: 85%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .chat-input input {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">Support Agent</div>
+        
+        <div class="api-key-notice">
+            <strong>⚠️ Setup Required:</strong> Replace "YOUR_API_KEY" in the code with your OpenAI API key
+        </div>
+        
+        <div class="chat-body" id="chatBody">
+            <div class="message agent">Hello! I'm your CRM assistant. How can I help you today with your account, billing, or support questions?</div>
+        </div>
+        
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="Type your message..." maxlength="500">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // OpenAI API Configuration
+        // IMPORTANT: Replace "YOUR_API_KEY" with your actual OpenAI API key
+        const OPENAI_API_KEY = null;
+        const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+
+        // Chat elements
+        const chatBody = document.getElementById('chatBody');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.querySelector('.chat-input button');
+		
+		function sendMessage() {
+			const userMessage = chatInput.value.trim();
+			if (!userMessage) return;
+
+			appendMessage("You", userMessage);
+			chatInput.value = "";
+
+			fetch("/chat_api/", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ message: userMessage })
+			})
+			.then(res => res.json())
+			.then(data => {
+				const aiMessage = data.choices[0].message.content;
+				appendMessage("AI", aiMessage);
+			})
+			.catch(err => {
+				console.error(err);
+				appendMessage("System", "Error: Could not connect to the server.");
+			});
+		}
+		
+		sendButton.addEventListener('click', sendMessage);
+		chatInput.addEventListener('keypress', function(e) {
+			if (e.key === 'Enter' && !e.shiftKey) {
+				e.preventDefault();
+				sendMessage();
+			}
+		});
+		
+		function appendMessage(sender, message) {
+			const msgElement = document.createElement('div');
+			msgElement.textContent = `${sender}: ${message}`;
+			chatBody.appendChild(msgElement);
+		}
+
+        // Store conversation history for context
+        let conversationHistory = [
+            {
+                role: "system",
+                content: "You are a Funky clown who likes to say the opposite of what they mean!"
+            }
+        ];
+
+        // Initialize chat functionality
+        function initializeChat() {
+            // Handle Enter key press
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Auto-focus input field
+            chatInput.focus();
+        }
+
+        // Send message function
+        async function sendMessage() {
+            const userMessage = chatInput.value.trim();
+            
+            // Prevent empty messages
+            if (!userMessage) {
+                return;
+            }
+
+            // Disable input while processing
+            setInputState(false);
+            
+            // Display user message
+            addMessage('user', userMessage);
+            
+            // Clear input field
+            chatInput.value = '';
+            
+            // Add user message to conversation history
+            conversationHistory.push({
+                role: "user",
+                content: userMessage
+            });
+
+            // Show typing indicator
+            const typingIndicator = showTypingIndicator();
+            
+            try {
+                // Check if API key is set
+                if (OPENAI_API_KEY === "YOUR_API_KEY") {
+                    throw new Error("Please set your OpenAI API key in the JavaScript code");
+                }
+
+                // Call ChatGPT API
+                const response = await fetch(OPENAI_API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o-mini", // Using gpt-4o-mini for cost efficiency
+                        messages: conversationHistory,
+                        max_tokens: 500,
+                        temperature: 0.7
+                    })
+                });
+
+                // Remove typing indicator
+                hideTypingIndicator(typingIndicator);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${errorData.error?.message || 'Unknown error'}`);
+                }
+
+                const data = await response.json();
+                const assistantMessage = data.choices[0].message.content;
+
+                // Add assistant response to conversation history
+                conversationHistory.push({
+                    role: "assistant",
+                    content: assistantMessage
+                });
+
+                // Display assistant message
+                addMessage('agent', assistantMessage);
+
+            } catch (error) {
+                console.error('Error:', error);
+                
+                // Remove typing indicator
+                hideTypingIndicator(typingIndicator);
+                
+                // Display error message
+                addErrorMessage(getErrorMessage(error));
+            } finally {
+                // Re-enable input
+                setInputState(true);
+            }
+        }
+
+        // Add message to chat
+        function addMessage(type, text) {
+            const msg = document.createElement('div');
+            msg.classList.add('message', type);
+            msg.innerText = text;
+            chatBody.appendChild(msg);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        // Add error message
+        function addErrorMessage(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            chatBody.appendChild(errorDiv);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        // Show typing indicator
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <span>Agent is typing</span>
+                <div class="typing-dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            `;
+            
+            chatBody.appendChild(typingDiv);
+            chatBody.scrollTop = chatBody.scrollHeight;
+            
+            return typingDiv;
+        }
+
+        // Hide typing indicator
+        function hideTypingIndicator(indicator) {
+            if (indicator && indicator.parentNode) {
+                indicator.parentNode.removeChild(indicator);
+            }
+        }
+
+        // Set input state (enabled/disabled)
+        function setInputState(enabled) {
+            chatInput.disabled = !enabled;
+            sendButton.disabled = !enabled;
+            
+            if (enabled) {
+                chatInput.focus();
+            }
+        }
+
+        // Get user-friendly error message
+        function getErrorMessage(error) {
+            if (error.message.includes("API key")) {
+                return "Please configure your OpenAI API key to enable chat functionality.";
+            } else if (error.message.includes("quota")) {
+                return "API quota exceeded. Please check your OpenAI account.";
+            } else if (error.message.includes("rate limit")) {
+                return "Too many requests. Please wait a moment and try again.";
+            } else if (error.message.includes("network") || error.name === "NetworkError") {
+                return "Network error. Please check your connection and try again.";
+            } else {
+                return "Sorry, I'm having trouble connecting. Please try again in a moment.";
+            }
+        }
+
+        // Initialize chat when page loads
+        document.addEventListener('DOMContentLoaded', initializeChat);
+
+        /*
+         * CHATGPT INTEGRATION GUIDE:
+         * 
+         * 1. Get your API key from: https://platform.openai.com/api-keys
+         * 2. Replace "YOUR_API_KEY" on line 119 with your actual API key
+         * 3. The system uses gpt-4o-mini model for cost efficiency
+         * 4. Conversation history is maintained for context
+         * 5. Error handling covers common API issues
+         * 
+         * Example API call structure:
+         * fetch("https://api.openai.com/v1/chat/completions", {
+         *     method: "POST",
+         *     headers: {
+         *         "Content-Type": "application/json",
+         *         "Authorization": "Bearer YOUR_API_KEY"
+         *     },
+         *     body: JSON.stringify({
+         *         model: "gpt-4o-mini",
+         *         messages: [
+         *             { role: "system", content: "You are a helpful CRM assistant..." },
+         *             { role: "user", content: userMessage }
+         *         ]
+         *     })
+         * })
+         * 
+         * API KEY SECURITY:
+         * - Never expose your API key in client-side code in production
+         * - For production, use a backend server to proxy API calls
+         * - Consider using environment variables or secure key management
+         * 
+         * CUSTOMIZATION:
+         * - Change the system message to modify the assistant's behavior
+         * - Adjust max_tokens to control response length
+         * - Modify temperature (0-2) to control creativity
+         * - Switch to "gpt-4" for higher quality responses (higher cost)
+         */
+    </script>
+</body>
+</html>

@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Page</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 300;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        .progress-item {
+            margin-bottom: 25px;
+        }
+
+        .progress-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .progress-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .progress-percentage {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 1.5s ease-in-out;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .complete {
+            background: linear-gradient(90deg, #28a745, #20c997) !important;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+
+        .form-group input:read-only {
+            background: #f8f9fa;
+            cursor: not-allowed;
+        }
+
+        .form-group input:not(:read-only) {
+            background: white;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            transform: scale(1.2);
+        }
+
+        .edit-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+            float: right;
+            margin-bottom: 15px;
+        }
+
+        .edit-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .edit-btn.saving {
+            background: #28a745;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+
+        .update-progress-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .update-progress-btn:hover {
+            background: #218838;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .card-body {
+                padding: 20px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .card-header {
+                padding: 15px;
+                font-size: 1.1rem;
+            }
+
+            .card-body {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Profile</h1>
+        </div>
+
+        <div class="success-message" id="successMessage">
+            Changes saved successfully!
+        </div>
+
+        <div class="grid">
+            <!-- Projects Progress Section -->
+            <div class="card">
+                <div class="card-header">
+                    Projects
+                </div>
+                <div class="card-body">
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span class="progress-name">Server Migration</span>
+                            <span class="progress-percentage">20%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 20%"></div>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span class="progress-name">Sales Tracking</span>
+                            <span class="progress-percentage">40%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 40%"></div>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span class="progress-name">Customer Database</span>
+                            <span class="progress-percentage">60%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 60%"></div>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span class="progress-name">Payout Details</span>
+                            <span class="progress-percentage">80%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 80%"></div>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-label">
+                            <span class="progress-name">Account Setup</span>
+                            <span class="progress-percentage">Complete!</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill complete" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <button class="update-progress-btn" onclick="updateProgress()">
+                        Update Progress
+                    </button>
+                </div>
+            </div>
+
+            <!-- User Settings Section -->
+            <div class="card">
+                <div class="card-header">
+                    User Settings
+                </div>
+                <div class="card-body">
+                    <button class="edit-btn" onclick="toggleEdit('user')" id="userEditBtn">Edit</button>
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" value="user.name" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" value="user@example.com" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" value="John" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" value="Doe" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Settings Section -->
+            <div class="card">
+                <div class="card-header">
+                    Contact Settings
+                </div>
+                <div class="card-body">
+                    <button class="edit-btn" onclick="toggleEdit('contact')" id="contactEditBtn">Edit</button>
+                    <div class="form-group">
+                        <label for="address">Address</label>
+                        <input type="text" id="address" value="Sunset Blvd, 38" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="city">City</label>
+                        <input type="text" id="city" value="Los Angeles" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="country">Country</label>
+                        <input type="text" id="country" value="USA" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Forum Settings Section -->
+            <div class="card">
+                <div class="card-header">
+                    Forum Settings
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="signature">Signature</label>
+                        <textarea id="signature" rows="4" placeholder="Enter your forum signature..."></textarea>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="notifications" checked>
+                        <label for="notifications">Notify me about new replies</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="saveChanges()">Save Changes</button>
+            <button class="btn btn-secondary" onclick="cancelChanges()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // Store original values for cancel functionality
+        let originalValues = {};
+        let editStates = {
+            user: false,
+            contact: false
+        };
+
+        // Initialize the page
+        function init() {
+            storeOriginalValues();
+            animateProgressBars();
+        }
+
+        // Store original form values
+        function storeOriginalValues() {
+            const inputs = document.querySelectorAll('input, textarea');
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    originalValues[input.id] = input.checked;
+                } else {
+                    originalValues[input.id] = input.value;
+                }
+            });
+        }
+
+        // Animate progress bars on load
+        function animateProgressBars() {
+            const progressFills = document.querySelectorAll('.progress-fill');
+            progressFills.forEach(fill => {
+                const width = fill.style.width;
+                fill.style.width = '0%';
+                setTimeout(() => {
+                    fill.style.width = width;
+                }, 500);
+            });
+        }
+
+        // Toggle edit mode for sections
+        function toggleEdit(section) {
+            const btn = document.getElementById(`${section}EditBtn`);
+            const inputs = document.querySelectorAll(`#${section === 'user' ? 'username, #email, #firstName, #lastName' : '#address, #city, #country'}`);
+            
+            if (!editStates[section]) {
+                // Enable edit mode
+                inputs.forEach(input => {
+                    input.removeAttribute('readonly');
+                    input.style.background = 'white';
+                });
+                btn.textContent = 'Save';
+                btn.classList.add('saving');
+                editStates[section] = true;
+            } else {
+                // Save and disable edit mode
+                inputs.forEach(input => {
+                    input.setAttribute('readonly', true);
+                    input.style.background = '#f8f9fa';
+                });
+                btn.textContent = 'Edit';
+                btn.classList.remove('saving');
+                editStates[section] = false;
+                showSuccessMessage();
+            }
+        }
+
+        // Update progress bars with random values
+        function updateProgress() {
+            const progressItems = document.querySelectorAll('.progress-item');
+            
+            progressItems.forEach((item, index) => {
+                if (index < 4) { // Skip the complete one
+                    const fill = item.querySelector('.progress-fill');
+                    const percentage = item.querySelector('.progress-percentage');
+                    
+                    let currentWidth = parseInt(fill.style.width);
+                    let newWidth = Math.min(currentWidth + Math.floor(Math.random() * 20) + 5, 100);
+                    
+                    fill.style.width = newWidth + '%';
+                    
+                    if (newWidth === 100) {
+                        percentage.textContent = 'Complete!';
+                        fill.classList.add('complete');
+                    } else {
+                        percentage.textContent = newWidth + '%';
+                    }
+                }
+            });
+            
+            showSuccessMessage('Progress updated successfully!');
+        }
+
+        // Save all changes
+        function saveChanges() {
+            // Reset edit states
+            Object.keys(editStates).forEach(section => {
+                if (editStates[section]) {
+                    toggleEdit(section);
+                }
+            });
+            
+            // Store new original values
+            storeOriginalValues();
+            
+            showSuccessMessage('All changes saved successfully!');
+        }
+
+        // Cancel all changes
+        function cancelChanges() {
+            const inputs = document.querySelectorAll('input, textarea');
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    input.checked = originalValues[input.id];
+                } else {
+                    input.value = originalValues[input.id];
+                }
+                
+                // Reset readonly state
+                if (input.id !== 'signature' && input.id !== 'notifications') {
+                    input.setAttribute('readonly', true);
+                    input.style.background = '#f8f9fa';
+                }
+            });
+            
+            // Reset edit states
+            Object.keys(editStates).forEach(section => {
+                editStates[section] = false;
+                const btn = document.getElementById(`${section}EditBtn`);
+                btn.textContent = 'Edit';
+                btn.classList.remove('saving');
+            });
+            
+            showSuccessMessage('Changes cancelled. Original values restored.');
+        }
+
+        // Show success message
+        function showSuccessMessage(message = 'Changes saved successfully!') {
+            const successMessage = document.getElementById('successMessage');
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
+
+        // Initialize the page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Canvas Calendar App</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    .popup, #noteEditor, #dayPopup, #confirmPopup {
+      position: absolute;
+      width: 300px;
+      padding: 10px;
+      background: white;
+      border: 1px solid #ccc;
+      z-index: 10;
+      display: none;
+    }
+    .popup-header {
+      font-weight: bold;
+      background: #f0f0f0;
+      padding: 5px;
+      cursor: move;
+    }
+    .close-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      cursor: pointer;
+    }
+    input, textarea, button {
+      width: 100%;
+      margin-top: 5px;
+    }
+    .popup-event {
+      margin-bottom: 10px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+    }
+    .popup-event input[type="color"] {
+      width: 40px;
+      height: 30px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+<canvas id="calendarCanvas"></canvas>
+<div id="noteEditor" class="popup">
+  <div class="popup-header" id="noteEditorHeader">Add Event <span class="close-btn" onclick="closeEditor()">✖</span></div>
+  <input id="noteTitle" placeholder="Event Title" />
+  <textarea id="noteDesc" placeholder="Description..."></textarea>
+  <input id="noteStartTime" placeholder="Start Time (e.g. 13:00)" />
+  <input id="noteEndTime" placeholder="End Time (e.g. 14:00)" />
+  <button onclick="trySaveNote()">Save</button>
+</div>
+<div id="dayPopup" class="popup">
+  <div class="popup-header" id="dayPopupHeader">Events <span class="close-btn" onclick="closePopup('dayPopup')">✖</span></div>
+</div>
+<div id="confirmPopup" class="popup">
+  <div class="popup-header" id="confirmPopupHeader">Conflict Detected <span class="close-btn" onclick="closePopup('confirmPopup')">✖</span></div>
+  <p>There’s a potential conflict with an existing event. Proceed anyway?</p>
+  <button onclick="confirmSaveNote(true)">OK</button>
+  <button onclick="confirmSaveNote(false)">Cancel</button>
+</div>
+<script>
+const canvas = document.getElementById('calendarCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let date = new Date();
+let year = date.getFullYear();
+let month = date.getMonth();
+const cols = 7;
+const cellWidth = canvas.width / cols;
+const cellHeight = (canvas.height - 50) / 6;
+
+let events = [];
+let scrollOffsets = Array(42).fill(0);
+let dragEvent = null;
+
+function getDaysInMonth(year, month) {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function drawGrid() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#ccc';
+  ctx.font = '16px sans-serif';
+
+  const daysInMonth = getDaysInMonth(year, month);
+  const startDay = new Date(year, month, 1).getDay();
+  const monthName = new Date(year, month).toLocaleString('default', { month: 'long' });
+
+  ctx.fillStyle = '#000';
+  ctx.font = '20px sans-serif';
+  ctx.fillText(`${monthName} ${year}`, 20, 35);
+
+  let dayCounter = 1;
+  for (let j = 0; j < 6; j++) {
+    for (let i = 0; i < cols; i++) {
+      const x = i * cellWidth;
+      const y = j * cellHeight + 50;
+      const index = j * cols + i;
+      ctx.strokeRect(x, y, cellWidth, cellHeight);
+      if (index >= startDay && dayCounter <= daysInMonth) {
+        ctx.fillStyle = '#000';
+        ctx.fillText(dayCounter, x + 5, y + 20);
+        const dayEvents = events.filter(e => e.day === dayCounter && e.month === month && e.year === year);
+        dayEvents.slice(scrollOffsets[dayCounter - 1], 3).forEach((ev, k) => {
+          const evY = y + 30 + k * 35;
+          ctx.fillStyle = ev.color || '#ffcc00';
+          ctx.fillRect(x + 5, evY, cellWidth - 10, 30);
+          ctx.fillStyle = '#000';
+          ctx.fillText(ev.title, x + 10, evY + 20);
+          ev._x = x + 5; ev._y = evY; ev._w = cellWidth - 10; ev._h = 30;
+        });
+        dayCounter++;
+      }
+    }
+  }
+}
+
+canvas.addEventListener('click', (e) => {
+  if (dragEvent) return;
+  const x = e.offsetX;
+  const y = e.offsetY - 50;
+  if (y < 0) return;
+  const col = Math.floor(x / cellWidth);
+  const row = Math.floor(y / cellHeight);
+  const startDay = new Date(year, month, 1).getDay();
+  const index = row * cols + col;
+  const day = index - startDay + 1;
+  const daysInMonth = getDaysInMonth(year, month);
+  if (day >= 1 && day <= daysInMonth) {
+    openEditor(day);
+  }
+});
+
+canvas.addEventListener('dblclick', (e) => {
+  const x = e.offsetX;
+  const y = e.offsetY - 50;
+  if (y < 0) return;
+  const col = Math.floor(x / cellWidth);
+  const row = Math.floor(y / cellHeight);
+  const startDay = new Date(year, month, 1).getDay();
+  const index = row * cols + col;
+  const day = index - startDay + 1;
+  const daysInMonth = getDaysInMonth(year, month);
+  if (day >= 1 && day <= daysInMonth) {
+    const popup = document.getElementById('dayPopup');
+    popup.innerHTML = `<div class='popup-header' id='dayPopupHeader'>Events for ${day} <span class='close-btn' onclick='closePopup("dayPopup")'>✖</span></div>`;
+    events.filter(ev => ev.day === day && ev.month === month && ev.year === year).forEach((ev, index) => {
+      const container = document.createElement('div');
+      container.className = 'popup-event';
+      container.innerHTML = `
+        <strong>${ev.title}</strong><br>
+        Time: ${ev.startTime} - ${ev.endTime}<br>
+        <small>${ev.desc || ''}</small><br>
+        <input type="color" value="${ev.color}" onchange="updateColor(${index}, this.value)" />
+        <button onclick="deleteEvent(${index})">Delete</button>
+      `;
+      popup.appendChild(container);
+    });
+    popup.style.left = '150px';
+    popup.style.top = '150px';
+    popup.style.display = 'block';
+    enablePopupDragging('dayPopup');
+  }
+});
+
+canvas.addEventListener('mousedown', (e) => {
+  const x = e.offsetX;
+  const y = e.offsetY;
+  dragEvent = events.find(ev => x > ev._x && x < ev._x + ev._w && y > ev._y && y < ev._y + ev._h);
+});
+
+canvas.addEventListener('mouseup', (e) => {
+  if (dragEvent) {
+    const x = e.offsetX;
+    const y = e.offsetY - 50;
+    const col = Math.floor(x / cellWidth);
+    const row = Math.floor(y / cellHeight);
+    const startDay = new Date(year, month, 1).getDay();
+    const index = row * cols + col;
+    const day = index - startDay + 1;
+    const daysInMonth = getDaysInMonth(year, month);
+    if (day >= 1 && day <= daysInMonth) {
+      dragEvent.day = day;
+    }
+    dragEvent = null;
+    drawGrid();
+  }
+});
+
+function trySaveNote() {
+  const title = document.getElementById('noteTitle').value;
+  const desc = document.getElementById('noteDesc').value;
+  const startTime = document.getElementById('noteStartTime').value;
+  const endTime = document.getElementById('noteEndTime').value;
+  const conflict = events.some(ev => ev.day === currentDay && ev.month === month && ev.year === year && ((startTime >= ev.startTime && startTime < ev.endTime) || (endTime > ev.startTime && endTime <= ev.endTime)));
+  if (conflict) {
+    document.getElementById('confirmPopup').style.display = 'block';
+    enablePopupDragging('confirmPopup');
+  } else {
+    confirmSaveNote(true);
+  }
+}
+
+function confirmSaveNote(proceed) {
+  closePopup('confirmPopup');
+  if (proceed) {
+    const title = document.getElementById('noteTitle').value;
+    const desc = document.getElementById('noteDesc').value;
+    const startTime = document.getElementById('noteStartTime').value;
+    const endTime = document.getElementById('noteEndTime').value;
+    events.push({ day: currentDay, month, year, title, desc, startTime, endTime, color: '#ffcc00' });
+    closeEditor();
+    drawGrid();
+  }
+}
+
+function openEditor(day) {
+  currentDay = day;
+  document.getElementById('noteTitle').value = '';
+  document.getElementById('noteDesc').value = '';
+  document.getElementById('noteStartTime').value = '';
+  document.getElementById('noteEndTime').value = '';
+  const editor = document.getElementById('noteEditor');
+  editor.style.left = '100px';
+  editor.style.top = '100px';
+  editor.style.display = 'block';
+  enablePopupDragging('noteEditor');
+}
+
+function closeEditor() {
+  document.getElementById('noteEditor').style.display = 'none';
+}
+
+function deleteEvent(index) {
+  events.splice(index, 1);
+  drawGrid();
+  closePopup('dayPopup');
+}
+
+function updateColor(index, color) {
+  events[index].color = color;
+  drawGrid();
+}
+
+function closePopup(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+function enablePopupDragging(popupId) {
+  const popup = document.getElementById(popupId);
+  const header = document.getElementById(popupId + 'Header');
+  let offsetX, offsetY;
+  header.onmousedown = function (e) {
+    offsetX = e.clientX - popup.offsetLeft;
+    offsetY = e.clientY - popup.offsetTop;
+    document.onmousemove = function (e) {
+      popup.style.left = (e.clientX - offsetX) + 'px';
+      popup.style.top = (e.clientY - offsetY) + 'px';
+    };
+    document.onmouseup = function () {
+      document.onmousemove = null;
+      document.onmouseup = null;
+    };
+  };
+}
+
+drawGrid();
+</script>
+</body>
+</html>

@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Team Member to Work Case</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f1f3f4;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 40px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .section:hover {
+            transform: translateY(-5px);
+        }
+
+        .section h2 {
+            color: #2c3e50;
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section h2::before {
+            content: '';
+            width: 4px;
+            height: 25px;
+            background: #3498db;
+            border-radius: 2px;
+        }
+
+        .case-info {
+            display: grid;
+            gap: 20px;
+        }
+
+        .case-field {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
+            transition: all 0.3s ease;
+        }
+
+        .case-field:hover {
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.1);
+        }
+
+        .case-field label {
+            font-weight: 600;
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .case-field .value {
+            color: #34495e;
+            font-size: 1.1rem;
+            line-height: 1.4;
+        }
+
+        .priority {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .priority.high {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .priority.medium {
+            background: #f39c12;
+            color: white;
+        }
+
+        .priority.low {
+            background: #27ae60;
+            color: white;
+        }
+
+        .filter-section {
+            margin-bottom: 25px;
+        }
+
+        .filter-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .team-members {
+            display: grid;
+            gap: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .team-member {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .team-member:hover {
+            border-color: #3498db;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.1);
+        }
+
+        .team-member.selected {
+            border-color: #3498db;
+            background: #ebf3fd;
+        }
+
+        .team-member.unavailable {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .team-member.unavailable:hover {
+            border-color: #e9ecef;
+            box-shadow: none;
+        }
+
+        .member-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .member-role {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .member-skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .skill-tag {
+            background: #ecf0f1;
+            color: #34495e;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .availability {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .availability.available {
+            background: #d5edda;
+            color: #155724;
+        }
+
+        .availability.busy {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .assign-button {
+            width: 100%;
+            padding: 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .assign-button:hover:not(:disabled) {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3);
+        }
+
+        .assign-button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .section {
+                padding: 20px;
+            }
+
+            .team-members {
+                max-height: 300px;
+            }
+        }
+
+        /* Custom Scrollbar */
+        .team-members::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .team-members::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .team-members::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+
+        .team-members::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Assign a Team Member to a Work Case</h1>
+            <p>Select the most suitable team member for your case based on skills and availability</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Case Details Section -->
+            <div class="section">
+                <h2>Case Details</h2>
+                <div class="case-info" id="caseInfo">
+                    <!-- Case details will be populated here -->
+                </div>
+            </div>
+
+            <!-- Assignment Panel Section -->
+            <div class="section">
+                <h2>Assignment Panel</h2>
+                
+                <div class="filter-section">
+                    <input 
+                        type="text" 
+                        id="filterInput" 
+                        class="filter-input" 
+                        placeholder="Filter by role, skills, or availability..."
+                    >
+                </div>
+
+                <div class="team-members" id="teamMembers">
+                    <!-- Team members will be populated here -->
+                </div>
+
+                <button class="assign-button" id="assignButton" disabled>
+                    Assign to Case
+                </button>
+
+                <div class="message" id="message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Hard-coded data
+        const caseDetails = {
+            id: "C-1024",
+            title: "Customer Data Migration",
+            description: "Migrate customer records to the new CRM platform.",
+            priority: "High",
+            dueDate: "2025-07-30"
+        };
+
+        const teamMembers = [
+            {
+                id: 1,
+                name: "Alice Johnson",
+                role: "Data Analyst",
+                skills: ["SQL", "ETL"],
+                availability: "Available"
+            },
+            {
+                id: 2,
+                name: "Bob Smith",
+                role: "Developer",
+                skills: ["JavaScript", "API"],
+                availability: "Busy"
+            },
+            {
+                id: 3,
+                name: "Carol Lee",
+                role: "Project Manager",
+                skills: ["Agile", "Scrum"],
+                availability: "Available"
+            },
+            {
+                id: 4,
+                name: "David Wilson",
+                role: "Database Administrator",
+                skills: ["SQL", "PostgreSQL", "MongoDB"],
+                availability: "Available"
+            },
+            {
+                id: 5,
+                name: "Emma Davis",
+                role: "Frontend Developer",
+                skills: ["React", "CSS", "JavaScript"],
+                availability: "Busy"
+            },
+            {
+                id: 6,
+                name: "Frank Miller",
+                role: "DevOps Engineer",
+                skills: ["Docker", "AWS", "CI/CD"],
+                availability: "Available"
+            },
+            {
+                id: 7,
+                name: "Grace Chen",
+                role: "UI/UX Designer",
+                skills: ["Figma", "Adobe XD", "User Research"],
+                availability: "Available"
+            },
+            {
+                id: 8,
+                name: "Henry Torres",
+                role: "Backend Developer",
+                skills: ["Python", "Django", "REST API"],
+                availability: "Busy"
+            },
+            {
+                id: 9,
+                name: "Ivy Rodriguez",
+                role: "QA Engineer",
+                skills: ["Selenium", "Testing", "Automation"],
+                availability: "Available"
+            },
+            {
+                id: 10,
+                name: "Jack Thompson",
+                role: "System Administrator",
+                skills: ["Linux", "Networking", "Security"],
+                availability: "Available"
+            },
+            {
+                id: 11,
+                name: "Karen White",
+                role: "Business Analyst",
+                skills: ["Requirements", "Process Mapping", "Stakeholder Management"],
+                availability: "Busy"
+            },
+            {
+                id: 12,
+                name: "Leo Martinez",
+                role: "Mobile Developer",
+                skills: ["React Native", "iOS", "Android"],
+                availability: "Available"
+            },
+            {
+                id: 13,
+                name: "Maya Patel",
+                role: "Data Scientist",
+                skills: ["Python", "Machine Learning", "Analytics"],
+                availability: "Available"
+            },
+            {
+                id: 14,
+                name: "Nathan Brown",
+                role: "Cloud Architect",
+                skills: ["Azure", "AWS", "Kubernetes"],
+                availability: "Busy"
+            },
+            {
+                id: 15,
+                name: "Olivia Green",
+                role: "Product Owner",
+                skills: ["Product Strategy", "User Stories", "Roadmapping"],
+                availability: "Available"
+            },
+            {
+                id: 16,
+                name: "Paul Anderson",
+                role: "Security Specialist",
+                skills: ["Cybersecurity", "Penetration Testing", "Compliance"],
+                availability: "Available"
+            },
+            {
+                id: 17,
+                name: "Quinn Foster",
+                role: "Technical Writer",
+                skills: ["Documentation", "API Docs", "User Guides"],
+                availability: "Busy"
+            },
+            {
+                id: 18,
+                name: "Rachel Kim",
+                role: "Scrum Master",
+                skills: ["Agile Coaching", "Team Facilitation", "Process Improvement"],
+                availability: "Available"
+            },
+            {
+                id: 19,
+                name: "Steve Johnson",
+                role: "Full Stack Developer",
+                skills: ["Node.js", "Vue.js", "MongoDB"],
+                availability: "Available"
+            },
+            {
+                id: 20,
+                name: "Tina Smith",
+                role: "Machine Learning Engineer",
+                skills: ["TensorFlow", "PyTorch", "Deep Learning"],
+                availability: "Busy"
+            },
+            {
+                id: 21,
+                name: "Uma Wilson",
+                role: "Site Reliability Engineer",
+                skills: ["Monitoring", "Incident Response", "Performance Tuning"],
+                availability: "Available"
+            },
+            {
+                id: 22,
+                name: "Victor Davis",
+                role: "Game Developer",
+                skills: ["Unity", "C#", "3D Graphics"],
+                availability: "Available"
+            },
+            {
+                id: 23,
+                name: "Wendy Miller",
+                role: "Data Engineer",
+                skills: ["Apache Spark", "Hadoop", "Data Pipeline"],
+                availability: "Busy"
+            },
+            {
+                id: 24,
+                name: "Xavier Chen",
+                role: "iOS Developer",
+                skills: ["Swift", "Objective-C", "Core Data"],
+                availability: "Available"
+            },
+            {
+                id: 25,
+                name: "Yuki Torres",
+                role: "Android Developer",
+                skills: ["Kotlin", "Java", "Android SDK"],
+                availability: "Available"
+            },
+            {
+                id: 26,
+                name: "Zoe Rodriguez",
+                role: "Marketing Analyst",
+                skills: ["Google Analytics", "SEO", "Campaign Management"],
+                availability: "Busy"
+            },
+            {
+                id: 27,
+                name: "Alex Thompson",
+                role: "Network Engineer",
+                skills: ["Cisco", "Network Security", "VPN"],
+                availability: "Available"
+            },
+            {
+                id: 28,
+                name: "Beth White",
+                role: "Software Architect",
+                skills: ["System Design", "Microservices", "Architecture Patterns"],
+                availability: "Available"
+            },
+            {
+                id: 29,
+                name: "Chris Martinez",
+                role: "Blockchain Developer",
+                skills: ["Solidity", "Smart Contracts", "Web3"],
+                availability: "Busy"
+            },
+            {
+                id: 30,
+                name: "Diana Patel",
+                role: "ERP Consultant",
+                skills: ["SAP", "Oracle", "Business Process"],
+                availability: "Available"
+            },
+            {
+                id: 31,
+                name: "Eric Brown",
+                role: "AI Research Scientist",
+                skills: ["Computer Vision", "NLP", "Research"],
+                availability: "Available"
+            },
+            {
+                id: 32,
+                name: "Fiona Green",
+                role: "HR Systems Analyst",
+                skills: ["HRIS", "Workday", "People Analytics"],
+                availability: "Busy"
+            },
+            {
+                id: 33,
+                name: "Greg Anderson",
+                role: "Salesforce Developer",
+                skills: ["Apex", "Lightning", "Salesforce Admin"],
+                availability: "Available"
+            },
+            {
+                id: 34,
+                name: "Hannah Foster",
+                role: "Content Manager",
+                skills: ["CMS", "Content Strategy", "SEO Writing"],
+                availability: "Available"
+            },
+            {
+                id: 35,
+                name: "Ian Kim",
+                role: "Performance Engineer",
+                skills: ["Load Testing", "JMeter", "Performance Optimization"],
+                availability: "Busy"
+            },
+            {
+                id: 36,
+                name: "Julia Johnson",
+                role: "Compliance Officer",
+                skills: ["Regulatory Compliance", "Risk Management", "Audit"],
+                availability: "Available"
+            }
+        ];
+
+        // Global variables
+        let selectedMember = null;
+        let filteredMembers = [...teamMembers];
+
+        // DOM elements
+        const caseInfoElement = document.getElementById('caseInfo');
+        const teamMembersElement = document.getElementById('teamMembers');
+        const filterInput = document.getElementById('filterInput');
+        const assignButton = document.getElementById('assignButton');
+        const messageElement = document.getElementById('message');
+
+        // Initialize the application
+        function initializeApp() {
+            loadCaseDetails();
+            displayTeamMembers();
+            setupEventListeners();
+        }
+
+        // Load case details into the UI
+        function loadCaseDetails() {
+            const caseHTML = `
+                <div class="case-field">
+                    <label>Case ID</label>
+                    <div class="value">${caseDetails.id}</div>
+                </div>
+                <div class="case-field">
+                    <label>Case Title</label>
+                    <div class="value">${caseDetails.title}</div>
+                </div>
+                <div class="case-field">
+                    <label>Description</label>
+                    <div class="value">${caseDetails.description}</div>
+                </div>
+                <div class="case-field">
+                    <label>Priority</label>
+                    <div class="value">
+                        <span class="priority ${caseDetails.priority.toLowerCase()}">${caseDetails.priority}</span>
+                    </div>
+                </div>
+                <div class="case-field">
+                    <label>Due Date</label>
+                    <div class="value">${formatDate(caseDetails.dueDate)}</div>
+                </div>
+            `;
+            caseInfoElement.innerHTML = caseHTML;
+        }
+
+        // Display team members
+        function displayTeamMembers() {
+            if (filteredMembers.length === 0) {
+                teamMembersElement.innerHTML = '<div class="no-results">No team members match your filter criteria.</div>';
+                return;
+            }
+
+            const membersHTML = filteredMembers.map(member => `
+                <div class="team-member ${member.availability === 'Busy' ? 'unavailable' : ''}" 
+                     data-member-id="${member.id}">
+                    <div class="availability ${member.availability.toLowerCase()}">${member.availability}</div>
+                    <div class="member-name">${member.name}</div>
+                    <div class="member-role">${member.role}</div>
+                    <div class="member-skills">
+                        ${member.skills.map(skill => `<span class="skill-tag">${skill}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            teamMembersElement.innerHTML = membersHTML;
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Filter input
+            filterInput.addEventListener('input', handleFilter);
+
+            // Team member selection
+            teamMembersElement.addEventListener('click', handleMemberSelection);
+
+            // Assign button
+            assignButton.addEventListener('click', handleAssignment);
+        }
+
+        // Handle filtering
+        function handleFilter() {
+            const filterValue = filterInput.value.toLowerCase().trim();
+            
+            if (filterValue === '') {
+                filteredMembers = [...teamMembers];
+            } else {
+                filteredMembers = teamMembers.filter(member => {
+                    const matchesName = member.name.toLowerCase().includes(filterValue);
+                    const matchesRole = member.role.toLowerCase().includes(filterValue);
+                    const matchesSkills = member.skills.some(skill => 
+                        skill.toLowerCase().includes(filterValue)
+                    );
+                    const matchesAvailability = member.availability.toLowerCase().includes(filterValue);
+                    
+                    return matchesName || matchesRole || matchesSkills || matchesAvailability;
+                });
+            }
+
+            // Reset selection if current selection is not in filtered results
+            if (selectedMember && !filteredMembers.find(m => m.id === selectedMember.id)) {
+                selectedMember = null;
+                updateAssignButton();
+            }
+
+            displayTeamMembers();
+        }
+
+        // Handle member selection
+        function handleMemberSelection(event) {
+            const memberElement = event.target.closest('.team-member');
+            if (!memberElement || memberElement.classList.contains('unavailable')) {
+                return;
+            }
+
+            const memberId = parseInt(memberElement.dataset.memberId);
+            const member = teamMembers.find(m => m.id === memberId);
+
+            // Clear previous selection
+            document.querySelectorAll('.team-member').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            // Select current member
+            memberElement.classList.add('selected');
+            selectedMember = member;
+            
+            updateAssignButton();
+            hideMessage();
+        }
+
+        // Update assign button state
+        function updateAssignButton() {
+            if (selectedMember && selectedMember.availability === 'Available') {
+                assignButton.disabled = false;
+                assignButton.textContent = `Assign ${selectedMember.name} to Case`;
+            } else {
+                assignButton.disabled = true;
+                assignButton.textContent = 'Assign to Case';
+            }
+        }
+
+        // Handle assignment
+        function handleAssignment() {
+            if (!selectedMember) {
+                showMessage('Please select a team member first.', 'error');
+                return;
+            }
+
+            if (selectedMember.availability !== 'Available') {
+                showMessage('Selected team member is not available.', 'error');
+                return;
+            }
+
+            // Update member availability
+            selectedMember.availability = 'Busy';
+            
+            // Update the original array
+            const originalMember = teamMembers.find(m => m.id === selectedMember.id);
+            if (originalMember) {
+                originalMember.availability = 'Busy';
+            }
+
+            // Show success message
+            showMessage(`Successfully assigned ${selectedMember.name} to Case ${caseDetails.id}`, 'success');
+
+            // Reset selection
+            selectedMember = null;
+            updateAssignButton();
+
+            // Refresh the display
+            handleFilter(); // This will re-filter and display
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            messageElement.textContent = text;
+            messageElement.className = `message ${type}`;
+            messageElement.classList.add('show');
+
+            // Hide message after 5 seconds
+            setTimeout(() => {
+                hideMessage();
+            }, 5000);
+        }
+
+        // Hide message
+        function hideMessage() {
+            messageElement.classList.remove('show');
+        }
+
+        // Format date for display
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
