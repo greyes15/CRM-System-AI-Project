@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Chat Simulation</title>
+    <title>AI Chat Box</title>
     <style>
+        /* Base body styling - centers the chat container on the page */
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f7f9;
@@ -13,21 +14,23 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            padding: 20px;
+            height: 100vh; /* Full viewport height */
         }
 
+        /* Main chat container - holds all chat elements */
         .chat-container {
-            width: 400px;
-            height: 600px;
+            width: 500px;
+            height: 700px;
+            max-height: 700px;
             background-color: #fff;
             border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            box-shadow: 0 0 15px rgba(0,0,0,0.1); /* Subtle shadow for depth */
             display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            flex-direction: column; /* Stack elements vertically */
+            overflow: hidden; /* Prevent content from spilling out */
         }
 
+        /* Chat header - shows the agent name/title */
         .chat-header {
             background-color: #2e3a59;
             color: #fff;
@@ -36,48 +39,48 @@
             font-weight: bold;
         }
 
+        /* Warning notice about API key setup */
         .api-key-notice {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 10px 15px;
+            background-color: #fff3cd; /* Light yellow background */
+            color: #856404; /* Dark yellow text */
+            padding: 8px 15px;
             font-size: 12px;
             border-bottom: 1px solid #ffeaa7;
             text-align: center;
         }
 
+        /* Main chat area where messages appear */
         .chat-body {
-            flex: 1;
+            flex: 1; /* Takes up remaining space */
             padding: 15px;
-            overflow-y: auto;
+            overflow-y: auto; /* Scrollable when messages overflow */
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 10px; /* Space between messages */
         }
 
+        /* Base styling for all messages */
         .message {
-            max-width: 75%;
+            max-width: 75%; /* Prevents messages from being too wide */
             padding: 10px 14px;
-            border-radius: 20px;
+            border-radius: 20px; /* Rounded message bubbles */
             font-size: 14px;
             line-height: 1.4;
-            animation: fadeIn 0.3s ease-in;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        /* User message styling - appears on the right */
         .user {
-            align-self: flex-end;
-            background-color: #daf0ff;
+            align-self: flex-end; /* Positions to the right */
+            background-color: #daf0ff; /* Light blue background */
         }
 
+        /* Agent message styling - appears on the left */
         .agent {
-            align-self: flex-start;
-            background-color: #eeeeee;
+            align-self: flex-start; /* Positions to the left */
+            background-color: #eeeeee; /* Light gray background */
         }
 
+        /* Typing indicator when agent is responding */
         .typing-indicator {
             align-self: flex-start;
             background-color: #eeeeee;
@@ -90,38 +93,44 @@
             gap: 8px;
         }
 
+        /* Container for the animated typing dots */
         .typing-dots {
             display: flex;
             gap: 3px;
         }
 
+        /* Individual animated dots */
         .dot {
             width: 6px;
             height: 6px;
             background-color: #999;
             border-radius: 50%;
-            animation: typing 1.4s infinite;
+            animation: typing 1.4s infinite; /* Bounce animation */
         }
 
+        /* Stagger the animation for each dot */
         .dot:nth-child(1) { animation-delay: 0s; }
         .dot:nth-child(2) { animation-delay: 0.2s; }
         .dot:nth-child(3) { animation-delay: 0.4s; }
 
+        /* Keyframes for the bouncing dot animation */
         @keyframes typing {
             0%, 60%, 100% { transform: translateY(0); }
             30% { transform: translateY(-4px); }
         }
 
+        /* Error message styling */
         .error-message {
             align-self: flex-start;
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: #f8d7da; /* Light red background */
+            color: #721c24; /* Dark red text */
             padding: 10px 14px;
             border-radius: 20px;
             font-size: 14px;
             max-width: 75%;
         }
 
+        /* Input area at the bottom of the chat */
         .chat-input {
             display: flex;
             padding: 10px;
@@ -129,19 +138,21 @@
             background-color: #fafafa;
         }
 
+        /* Text input field styling */
         .chat-input input {
-            flex: 1;
+            flex: 1; /* Takes up most of the space */
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 20px;
             outline: none;
-            font-size: 14px;
         }
 
+        /* Input field focus state */
         .chat-input input:focus {
             border-color: #2e3a59;
         }
 
+        /* Send button styling */
         .chat-input button {
             margin-left: 10px;
             padding: 10px 20px;
@@ -150,68 +161,52 @@
             border: none;
             border-radius: 20px;
             cursor: pointer;
-            font-size: 14px;
         }
 
+        /* Send button hover effect */
         .chat-input button:hover {
             background-color: #1c2740;
         }
 
+        /* Disabled send button styling */
         .chat-input button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
         }
 
-        /* Mobile Responsiveness */
+        /* Mobile responsiveness - adjusts layout for smaller screens */
         @media (max-width: 768px) {
             body {
-                padding: 10px;
+                padding: 20px;
             }
 
             .chat-container {
-                width: 100%;
-                max-width: 100%;
-                height: 100vh;
-                max-height: 100vh;
-                border-radius: 0;
-            }
-
-            .chat-header {
-                padding: 12px;
-            }
-
-            .chat-body {
-                padding: 12px;
-            }
-
-            .chat-input {
-                padding: 8px;
-            }
-
-            .message {
-                max-width: 85%;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .chat-input input {
-                font-size: 16px; /* Prevents zoom on iOS */
+                width: 500px;
+                max-width: 99%; /* Fits smaller screens */
+                height: 700px;
+                max-height: 700px;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Main chat container structure -->
     <div class="chat-container">
+        <!-- Header showing agent name -->
         <div class="chat-header">Support Agent</div>
         
+        <!-- Warning notice about Django backend setup -->
         <div class="api-key-notice">
-            <strong>⚠️ Setup Required:</strong> Replace "YOUR_API_KEY" in the code with your OpenAI API key
+            <strong>⚠️ Setup Required:</strong> Configure OpenAI API key in Django environment variables and set up chat proxy endpoint
         </div>
         
+        <!-- Chat messages area -->
         <div class="chat-body" id="chatBody">
+            <!-- Initial welcome message from the agent -->
             <div class="message agent">Hello! I'm your CRM assistant. How can I help you today with your account, billing, or support questions?</div>
         </div>
         
+        <!-- Input area for user messages -->
         <div class="chat-input">
             <input type="text" id="chatInput" placeholder="Type your message..." maxlength="500">
             <button onclick="sendMessage()">Send</button>
@@ -219,131 +214,104 @@
     </div>
 
     <script>
-        // OpenAI API Configuration
-        // IMPORTANT: Replace "YOUR_API_KEY" with your actual OpenAI API key
-        const OPENAI_API_KEY = null;
-        const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-
-        // Chat elements
+        // Django Backend Configuration
+        // API calls will go through Django backend proxy to keep OpenAI API key secure
+        
+        // Get references to DOM elements we'll interact with
         const chatBody = document.getElementById('chatBody');
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.querySelector('.chat-input button');
-		
-		function sendMessage() {
-			const userMessage = chatInput.value.trim();
-			if (!userMessage) return;
 
-			appendMessage("You", userMessage);
-			chatInput.value = "";
-
-			fetch("/chat_api/", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ message: userMessage })
-			})
-			.then(res => res.json())
-			.then(data => {
-				const aiMessage = data.choices[0].message.content;
-				appendMessage("AI", aiMessage);
-			})
-			.catch(err => {
-				console.error(err);
-				appendMessage("System", "Error: Could not connect to the server.");
-			});
-		}
-		
-		sendButton.addEventListener('click', sendMessage);
-		chatInput.addEventListener('keypress', function(e) {
-			if (e.key === 'Enter' && !e.shiftKey) {
-				e.preventDefault();
-				sendMessage();
-			}
-		});
-		
-		function appendMessage(sender, message) {
-			const msgElement = document.createElement('div');
-			msgElement.textContent = `${sender}: ${message}`;
-			chatBody.appendChild(msgElement);
-		}
-
-        // Store conversation history for context
+        // Store conversation history for context in API calls
+        // This maintains the conversation flow across multiple messages
         let conversationHistory = [
             {
                 role: "system",
-                content: "You are a Funky clown who likes to say the opposite of what they mean!"
+                content: "You are a helpful CRM assistant helping customers with account, billing, and support queries. Be professional, friendly, and provide helpful solutions."
             }
         ];
 
-        // Initialize chat functionality
+        // Get CSRF token for Django security
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Initialize chat functionality when page loads
         function initializeChat() {
-            // Handle Enter key press
+            // Handle Enter key press in input field
             chatInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
+                    e.preventDefault(); // Prevent default form submission
+                    sendMessage(); // Send the message
                 }
             });
 
-            // Auto-focus input field
+            // Auto-focus input field so user can start typing immediately
             chatInput.focus();
         }
 
-        // Send message function
+        // Main function to send user message and get AI response through Django backend
         async function sendMessage() {
             const userMessage = chatInput.value.trim();
             
-            // Prevent empty messages
+            // Prevent empty messages from being sent
             if (!userMessage) {
                 return;
             }
 
-            // Disable input while processing
+            // Disable input while processing to prevent multiple submissions
             setInputState(false);
             
-            // Display user message
+            // Display user message in chat
             addMessage('user', userMessage);
             
-            // Clear input field
+            // Clear input field for next message
             chatInput.value = '';
             
-            // Add user message to conversation history
+            // Add user message to conversation history for context
             conversationHistory.push({
                 role: "user",
                 content: userMessage
             });
 
-            // Show typing indicator
+            // Show typing indicator while waiting for response
             const typingIndicator = showTypingIndicator();
             
             try {
-                // Check if API key is set
-                if (OPENAI_API_KEY === "YOUR_API_KEY") {
-                    throw new Error("Please set your OpenAI API key in the JavaScript code");
-                }
-
-                // Call ChatGPT API
-                const response = await fetch(OPENAI_API_URL, {
+                // Call Django backend proxy endpoint instead of OpenAI directly
+                // This keeps the API key secure on the server side
+                const response = await fetch('/chat-proxy/', {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "Authorization": `Bearer ${OPENAI_API_KEY}`
+                        "X-CSRFToken": getCookie('csrftoken') // Django CSRF protection
                     },
                     body: JSON.stringify({
-                        model: "gpt-4o-mini", // Using gpt-4o-mini for cost efficiency
-                        messages: conversationHistory,
-                        max_tokens: 500,
-                        temperature: 0.7
+                        messages: conversationHistory // Send full conversation history
                     })
                 });
 
-                // Remove typing indicator
+                // Remove typing indicator once we have a response
                 hideTypingIndicator(typingIndicator);
 
+                // Check if Django backend request was successful
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(`API Error: ${errorData.error?.message || 'Unknown error'}`);
+                    throw new Error(errorData.error || 'Server error');
                 }
 
+                // Parse the response JSON from Django backend
                 const data = await response.json();
                 const assistantMessage = data.choices[0].message.content;
 
@@ -353,45 +321,47 @@
                     content: assistantMessage
                 });
 
-                // Display assistant message
+                // Display assistant message in chat
                 addMessage('agent', assistantMessage);
 
             } catch (error) {
+                // Log error to console for debugging
                 console.error('Error:', error);
                 
-                // Remove typing indicator
+                // Remove typing indicator if there was an error
                 hideTypingIndicator(typingIndicator);
                 
-                // Display error message
+                // Display user-friendly error message
                 addErrorMessage(getErrorMessage(error));
             } finally {
-                // Re-enable input
+                // Re-enable input regardless of success or failure
                 setInputState(true);
             }
         }
 
-        // Add message to chat
+        // Add a message to the chat display
         function addMessage(type, text) {
             const msg = document.createElement('div');
-            msg.classList.add('message', type);
-            msg.innerText = text;
-            chatBody.appendChild(msg);
-            chatBody.scrollTop = chatBody.scrollHeight;
+            msg.classList.add('message', type); // Add classes for styling
+            msg.innerText = text; // Set message text
+            chatBody.appendChild(msg); // Add to chat body
+            chatBody.scrollTop = chatBody.scrollHeight; // Scroll to bottom
         }
 
-        // Add error message
+        // Add an error message to the chat display
         function addErrorMessage(message) {
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error-message';
             errorDiv.textContent = message;
             chatBody.appendChild(errorDiv);
-            chatBody.scrollTop = chatBody.scrollHeight;
+            chatBody.scrollTop = chatBody.scrollHeight; // Scroll to bottom
         }
 
-        // Show typing indicator
+        // Show typing indicator while waiting for AI response
         function showTypingIndicator() {
             const typingDiv = document.createElement('div');
             typingDiv.className = 'typing-indicator';
+            // Create animated dots to show activity
             typingDiv.innerHTML = `
                 <span>Agent is typing</span>
                 <div class="typing-dots">
@@ -402,38 +372,39 @@
             `;
             
             chatBody.appendChild(typingDiv);
-            chatBody.scrollTop = chatBody.scrollHeight;
+            chatBody.scrollTop = chatBody.scrollHeight; // Scroll to bottom
             
-            return typingDiv;
+            return typingDiv; // Return reference so we can remove it later
         }
 
-        // Hide typing indicator
+        // Hide/remove typing indicator
         function hideTypingIndicator(indicator) {
             if (indicator && indicator.parentNode) {
                 indicator.parentNode.removeChild(indicator);
             }
         }
 
-        // Set input state (enabled/disabled)
+        // Enable or disable input controls
         function setInputState(enabled) {
             chatInput.disabled = !enabled;
             sendButton.disabled = !enabled;
             
+            // Focus input when enabled
             if (enabled) {
                 chatInput.focus();
             }
         }
 
-        // Get user-friendly error message
+        // Convert technical error messages to user-friendly ones
         function getErrorMessage(error) {
-            if (error.message.includes("API key")) {
-                return "Please configure your OpenAI API key to enable chat functionality.";
-            } else if (error.message.includes("quota")) {
-                return "API quota exceeded. Please check your OpenAI account.";
-            } else if (error.message.includes("rate limit")) {
-                return "Too many requests. Please wait a moment and try again.";
+            if (error.message.includes("Server error") || error.message.includes("500")) {
+                return "AI service is temporarily unavailable. Please try again in a moment.";
             } else if (error.message.includes("network") || error.name === "NetworkError") {
                 return "Network error. Please check your connection and try again.";
+            } else if (error.message.includes("403") || error.message.includes("Forbidden")) {
+                return "Access denied. Please refresh the page and try again.";
+            } else if (error.message.includes("404")) {
+                return "Chat service not found. Please contact support.";
             } else {
                 return "Sorry, I'm having trouble connecting. Please try again in a moment.";
             }
@@ -443,40 +414,103 @@
         document.addEventListener('DOMContentLoaded', initializeChat);
 
         /*
-         * CHATGPT INTEGRATION GUIDE:
+         * DJANGO BACKEND INTEGRATION GUIDE:
          * 
-         * 1. Get your API key from: https://platform.openai.com/api-keys
-         * 2. Replace "YOUR_API_KEY" on line 119 with your actual API key
-         * 3. The system uses gpt-4o-mini model for cost efficiency
-         * 4. Conversation history is maintained for context
-         * 5. Error handling covers common API issues
+         * This application creates a chat interface that communicates with OpenAI's ChatGPT API
+         * through a secure Django backend proxy to keep API keys safe.
          * 
-         * Example API call structure:
-         * fetch("https://api.openai.com/v1/chat/completions", {
-         *     method: "POST",
-         *     headers: {
-         *         "Content-Type": "application/json",
-         *         "Authorization": "Bearer YOUR_API_KEY"
-         *     },
-         *     body: JSON.stringify({
-         *         model: "gpt-4o-mini",
-         *         messages: [
-         *             { role: "system", content: "You are a helpful CRM assistant..." },
-         *             { role: "user", content: userMessage }
-         *         ]
-         *     })
-         * })
+         * HOW IT WORKS:
+         * 1. User types a message and clicks send or presses Enter
+         * 2. Message is displayed in the chat and added to conversation history
+         * 3. A typing indicator appears while waiting for AI response
+         * 4. The app makes a POST request to Django's '/chat-proxy/' endpoint
+         * 5. Django backend makes the actual OpenAI API call with the secure API key
+         * 6. Django returns the AI response to the frontend
+         * 7. AI response is displayed and added to conversation history
+         * 8. Process repeats for continuous conversation
          * 
-         * API KEY SECURITY:
-         * - Never expose your API key in client-side code in production
-         * - For production, use a backend server to proxy API calls
-         * - Consider using environment variables or secure key management
+         * DJANGO BACKEND SETUP REQUIRED:
          * 
-         * CUSTOMIZATION:
-         * - Change the system message to modify the assistant's behavior
-         * - Adjust max_tokens to control response length
-         * - Modify temperature (0-2) to control creativity
-         * - Switch to "gpt-4" for higher quality responses (higher cost)
+         * 1. CREATE DJANGO VIEW (views.py):
+         * ```python
+         * import json
+         * from django.http import JsonResponse
+         * from django.views.decorators.csrf import csrf_exempt
+         * from django.views.decorators.http import require_http_methods
+         * from django.conf import settings
+         * import openai
+         * 
+         * @csrf_exempt
+         * @require_http_methods(["POST"])
+         * def chat_proxy(request):
+         *     try:
+         *         data = json.loads(request.body)
+         *         messages = data.get('messages', [])
+         *         
+         *         client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+         *         response = client.chat.completions.create(
+         *             model="gpt-4o-mini",
+         *             messages=messages,
+         *             max_tokens=500,
+         *             temperature=0.7
+         *         )
+         *         
+         *         return JsonResponse({
+         *             'choices': [{
+         *                 'message': {
+         *                     'content': response.choices[0].message.content
+         *                 }
+         *             }]
+         *         })
+         *     except Exception as e:
+         *         return JsonResponse({'error': str(e)}, status=500)
+         * ```
+         * 
+         * 2. ADD URL PATTERN (urls.py):
+         * ```python
+         * path('chat-proxy/', views.chat_proxy, name='chat_proxy'),
+         * ```
+         * 
+         * 3. CONFIGURE ENVIRONMENT VARIABLES:
+         * - Add OPENAI_API_KEY to your environment variables
+         * - For Render.com: Set in dashboard under Environment tab
+         * - For local development: Use .env file with python-dotenv
+         * 
+         * 4. UPDATE SETTINGS.PY:
+         * ```python
+         * import os
+         * OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+         * ```
+         * 
+         * 5. INSTALL REQUIRED PACKAGES:
+         * ```
+         * pip install openai django
+         * ```
+         * 
+         * SECURITY FEATURES:
+         * - API key never exposed to client-side code
+         * - CSRF protection included in requests
+         * - All API calls go through your controlled Django backend
+         * - Error messages are sanitized before sending to client
+         * 
+         * CONVERSATION HISTORY:
+         * - System message: Sets the AI's role and behavior
+         * - User messages: What the user typed
+         * - Assistant messages: AI responses
+         * This history is sent with each request to maintain context
+         * 
+         * ERROR HANDLING:
+         * - Network connectivity issues
+         * - Django backend errors
+         * - OpenAI API errors (handled on backend)
+         * - Invalid responses
+         * - CSRF token issues
+         * 
+         * RENDER.COM DEPLOYMENT:
+         * - Set OPENAI_API_KEY in Render dashboard environment variables
+         * - Ensure gunicorn is in requirements.txt
+         * - Use proper Django production settings
+         * - Static files handled by WhiteNoise
          */
     </script>
 </body>

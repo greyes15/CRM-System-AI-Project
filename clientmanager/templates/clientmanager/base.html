@@ -219,9 +219,8 @@
 					id="iframeContent"
 					src="{% url 'AIChatBox' %}"
 					onload="hideLoading()"
-					style="width: 100%; height: 100%; border: none;;">
+					style="width: 100%; height: 90%; border: none;;">
 				</iframe>
-
         </div>
     </div>
 
@@ -230,7 +229,7 @@
     <script src="{% static 'clientmanager/assets/js/chart.min.js' %}"></script>
     <script src="{% static 'clientmanager/assets/js/theme.js' %}"></script>
     <script src="{% static 'clientmanager/assets/js/bs-init.js' %}"></script>
-	    <script>
+	<script>
         const floatingBtn = document.getElementById('floatingBtn');
         const iframePanel = document.getElementById('iframePanel');
         const closeBtn = document.getElementById('closeBtn');
@@ -284,7 +283,7 @@
                 closePanel();
             }
         });
-    </script>
+	</script>
 	  {% block extra_js %}{% endblock %}
 
 </body>
