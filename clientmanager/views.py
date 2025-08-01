@@ -70,14 +70,30 @@ def team_task_main_view(request):
 def AIChatBox_view(request):
     return render(request, 'clientmanager/AIChatBox.html')
     
-import os
-import requests
+import os, json
+from openai import OpenAI
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-import json
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-def chat_api(request):
-    api_key = os.getenv("OPENAI_API_KEY")  # Get from env
-    return render(request, "chat.html", {"openai_api_key": api_key})
+@csrf_exempt                # or use Django’s CSRF middleware + fetch header
+@require_POST
+def chat_proxy(request):
+    """Receives {messages:[…]} from front-end, calls OpenAI, returns reply."""
+    try:
+        payload   = json.loads(request.body)
+        messages  = payload.get("messages", [])
+
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+        )
+
+        # Pass the whole response back so JS can read choices[0].message.content
+        return JsonResponse(completion.model_dump(), safe=False)
+
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=500)

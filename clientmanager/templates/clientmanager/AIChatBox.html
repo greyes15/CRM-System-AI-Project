@@ -190,328 +190,102 @@
     </style>
 </head>
 <body>
-    <!-- Main chat container structure -->
-    <div class="chat-container">
-        <!-- Header showing agent name -->
-        <div class="chat-header">Support Agent</div>
-        
-        <!-- Warning notice about Django backend setup -->
-        <div class="api-key-notice">
-            <strong>⚠️ Setup Required:</strong> Configure OpenAI API key in Django environment variables and set up chat proxy endpoint
-        </div>
-        
-        <!-- Chat messages area -->
-        <div class="chat-body" id="chatBody">
-            <!-- Initial welcome message from the agent -->
-            <div class="message agent">Hello! I'm your CRM assistant. How can I help you today with your account, billing, or support questions?</div>
-        </div>
-        
-        <!-- Input area for user messages -->
-        <div class="chat-input">
-            <input type="text" id="chatInput" placeholder="Type your message..." maxlength="500">
-            <button onclick="sendMessage()">Send</button>
-        </div>
-    </div>
+	<!-- Main chat container structure -->
+	<div class="chat-container">
+	  <!-- Header showing agent name -->
+	  <div class="chat-header">Support Agent</div>
 
-    <script>
-        // Django Backend Configuration
-        // API calls will go through Django backend proxy to keep OpenAI API key secure
-        
-        // Get references to DOM elements we'll interact with
-        const chatBody = document.getElementById('chatBody');
-        const chatInput = document.getElementById('chatInput');
-        const sendButton = document.querySelector('.chat-input button');
+	  <!-- Chat messages area -->
+	  <div class="chat-body" id="chatBody">
+		<div class="message agent">
+		  Hello! I'm your CRM assistant. How can I help you today with your account,
+		  billing, or support questions?
+		</div>
+	  </div>
 
-        // Store conversation history for context in API calls
-        // This maintains the conversation flow across multiple messages
-        let conversationHistory = [
-            {
-                role: "system",
-                content: "You are a helpful CRM assistant helping customers with account, billing, and support queries. Be professional, friendly, and provide helpful solutions."
-            }
-        ];
+	  <!-- Input area for user messages -->
+	  <div class="chat-input">
+		<input
+		  type="text"
+		  id="chatInput"
+		  placeholder="Type your message…"
+		  maxlength="500"
+		/>
+		<!-- IMPORTANT: add class="send-btn" and remove inline onclick -->
+		<button class="send-btn">Send</button>
+	  </div>
+	</div>
 
-        // Get CSRF token for Django security
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
+<!-- script LAST so DOM elements exist -->
+<!-- put this just before </body> -->
+	<script>
+		(() => {
+		  /* ---------- DOM ---------- */
+		  const chatBody  = document.getElementById('chatBody');
+		  const chatInput = document.getElementById('chatInput');
+		  const sendBtn   = document.querySelector('.send-btn');      // ← works now
 
-        // Initialize chat functionality when page loads
-        function initializeChat() {
-            // Handle Enter key press in input field
-            chatInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault(); // Prevent default form submission
-                    sendMessage(); // Send the message
-                }
-            });
+		  /* ---------- State ---------- */
+		  const conversationHistory = [
+			{ role: 'system', content: 'You are a helpful CRM assistant.' }
+		  ];
 
-            // Auto-focus input field so user can start typing immediately
-            chatInput.focus();
-        }
+		  /* ---------- Helpers ---------- */
+		  const getCookie = name =>
+			document.cookie.split('; ')
+			  .find(c => c.startsWith(name + '='))?.split('=')[1] || '';
 
-        // Main function to send user message and get AI response through Django backend
-        async function sendMessage() {
-            const userMessage = chatInput.value.trim();
-            
-            // Prevent empty messages from being sent
-            if (!userMessage) {
-                return;
-            }
+		  function addMessage(role, text) {
+			const div = document.createElement('div');
+			div.className = `message ${role === 'user' ? 'user' : 'agent'}`;
+			div.textContent = text;
+			chatBody.appendChild(div);
+			chatBody.scrollTop = chatBody.scrollHeight;
+		  }
 
-            // Disable input while processing to prevent multiple submissions
-            setInputState(false);
-            
-            // Display user message in chat
-            addMessage('user', userMessage);
-            
-            // Clear input field for next message
-            chatInput.value = '';
-            
-            // Add user message to conversation history for context
-            conversationHistory.push({
-                role: "user",
-                content: userMessage
-            });
+		  /* ---------- Core ---------- */
+		  async function sendMessage() {
+			const userMsg = chatInput.value.trim();
+			if (!userMsg) return;
 
-            // Show typing indicator while waiting for response
-            const typingIndicator = showTypingIndicator();
-            
-            try {
-                // Call Django backend proxy endpoint instead of OpenAI directly
-                // This keeps the API key secure on the server side
-                const response = await fetch('/chat-proxy/', {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": getCookie('csrftoken') // Django CSRF protection
-                    },
-                    body: JSON.stringify({
-                        messages: conversationHistory // Send full conversation history
-                    })
-                });
+			addMessage('user', userMsg);
+			chatInput.value = '';
+			conversationHistory.push({ role: 'user', content: userMsg });
 
-                // Remove typing indicator once we have a response
-                hideTypingIndicator(typingIndicator);
+			try {
+			  const rsp = await fetch('/chat-proxy/', {
+				method: 'POST',
+				headers: {
+				  'Content-Type': 'application/json',
+				  'X-CSRFToken': getCookie('csrftoken')
+				},
+				body: JSON.stringify({ messages: conversationHistory })
+			  });
 
-                // Check if Django backend request was successful
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Server error');
-                }
+			  if (!rsp.ok) throw new Error('Server error');
+			  const data  = await rsp.json();
+			  const aiMsg = data.choices[0].message.content;
 
-                // Parse the response JSON from Django backend
-                const data = await response.json();
-                const assistantMessage = data.choices[0].message.content;
+			  conversationHistory.push({ role: 'assistant', content: aiMsg });
+			  addMessage('assistant', aiMsg);
 
-                // Add assistant response to conversation history
-                conversationHistory.push({
-                    role: "assistant",
-                    content: assistantMessage
-                });
+			} catch (err) {
+			  console.error(err);
+			  addMessage('agent', '⚠️ Sorry, something went wrong.');
+			}
+		  }
 
-                // Display assistant message in chat
-                addMessage('agent', assistantMessage);
+		  /* ---------- Events ---------- */
+		  sendBtn.addEventListener('click', sendMessage);
+		  chatInput.addEventListener('keypress', e => {
+			if (e.key === 'Enter' && !e.shiftKey) {
+			  e.preventDefault();
+			  sendMessage();
+			}
+		  });
 
-            } catch (error) {
-                // Log error to console for debugging
-                console.error('Error:', error);
-                
-                // Remove typing indicator if there was an error
-                hideTypingIndicator(typingIndicator);
-                
-                // Display user-friendly error message
-                addErrorMessage(getErrorMessage(error));
-            } finally {
-                // Re-enable input regardless of success or failure
-                setInputState(true);
-            }
-        }
-
-        // Add a message to the chat display
-        function addMessage(type, text) {
-            const msg = document.createElement('div');
-            msg.classList.add('message', type); // Add classes for styling
-            msg.innerText = text; // Set message text
-            chatBody.appendChild(msg); // Add to chat body
-            chatBody.scrollTop = chatBody.scrollHeight; // Scroll to bottom
-        }
-
-        // Add an error message to the chat display
-        function addErrorMessage(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error-message';
-            errorDiv.textContent = message;
-            chatBody.appendChild(errorDiv);
-            chatBody.scrollTop = chatBody.scrollHeight; // Scroll to bottom
-        }
-
-        // Show typing indicator while waiting for AI response
-        function showTypingIndicator() {
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'typing-indicator';
-            // Create animated dots to show activity
-            typingDiv.innerHTML = `
-                <span>Agent is typing</span>
-                <div class="typing-dots">
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                </div>
-            `;
-            
-            chatBody.appendChild(typingDiv);
-            chatBody.scrollTop = chatBody.scrollHeight; // Scroll to bottom
-            
-            return typingDiv; // Return reference so we can remove it later
-        }
-
-        // Hide/remove typing indicator
-        function hideTypingIndicator(indicator) {
-            if (indicator && indicator.parentNode) {
-                indicator.parentNode.removeChild(indicator);
-            }
-        }
-
-        // Enable or disable input controls
-        function setInputState(enabled) {
-            chatInput.disabled = !enabled;
-            sendButton.disabled = !enabled;
-            
-            // Focus input when enabled
-            if (enabled) {
-                chatInput.focus();
-            }
-        }
-
-        // Convert technical error messages to user-friendly ones
-        function getErrorMessage(error) {
-            if (error.message.includes("Server error") || error.message.includes("500")) {
-                return "AI service is temporarily unavailable. Please try again in a moment.";
-            } else if (error.message.includes("network") || error.name === "NetworkError") {
-                return "Network error. Please check your connection and try again.";
-            } else if (error.message.includes("403") || error.message.includes("Forbidden")) {
-                return "Access denied. Please refresh the page and try again.";
-            } else if (error.message.includes("404")) {
-                return "Chat service not found. Please contact support.";
-            } else {
-                return "Sorry, I'm having trouble connecting. Please try again in a moment.";
-            }
-        }
-
-        // Initialize chat when page loads
-        document.addEventListener('DOMContentLoaded', initializeChat);
-
-        /*
-         * DJANGO BACKEND INTEGRATION GUIDE:
-         * 
-         * This application creates a chat interface that communicates with OpenAI's ChatGPT API
-         * through a secure Django backend proxy to keep API keys safe.
-         * 
-         * HOW IT WORKS:
-         * 1. User types a message and clicks send or presses Enter
-         * 2. Message is displayed in the chat and added to conversation history
-         * 3. A typing indicator appears while waiting for AI response
-         * 4. The app makes a POST request to Django's '/chat-proxy/' endpoint
-         * 5. Django backend makes the actual OpenAI API call with the secure API key
-         * 6. Django returns the AI response to the frontend
-         * 7. AI response is displayed and added to conversation history
-         * 8. Process repeats for continuous conversation
-         * 
-         * DJANGO BACKEND SETUP REQUIRED:
-         * 
-         * 1. CREATE DJANGO VIEW (views.py):
-         * ```python
-         * import json
-         * from django.http import JsonResponse
-         * from django.views.decorators.csrf import csrf_exempt
-         * from django.views.decorators.http import require_http_methods
-         * from django.conf import settings
-         * import openai
-         * 
-         * @csrf_exempt
-         * @require_http_methods(["POST"])
-         * def chat_proxy(request):
-         *     try:
-         *         data = json.loads(request.body)
-         *         messages = data.get('messages', [])
-         *         
-         *         client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-         *         response = client.chat.completions.create(
-         *             model="gpt-4o-mini",
-         *             messages=messages,
-         *             max_tokens=500,
-         *             temperature=0.7
-         *         )
-         *         
-         *         return JsonResponse({
-         *             'choices': [{
-         *                 'message': {
-         *                     'content': response.choices[0].message.content
-         *                 }
-         *             }]
-         *         })
-         *     except Exception as e:
-         *         return JsonResponse({'error': str(e)}, status=500)
-         * ```
-         * 
-         * 2. ADD URL PATTERN (urls.py):
-         * ```python
-         * path('chat-proxy/', views.chat_proxy, name='chat_proxy'),
-         * ```
-         * 
-         * 3. CONFIGURE ENVIRONMENT VARIABLES:
-         * - Add OPENAI_API_KEY to your environment variables
-         * - For Render.com: Set in dashboard under Environment tab
-         * - For local development: Use .env file with python-dotenv
-         * 
-         * 4. UPDATE SETTINGS.PY:
-         * ```python
-         * import os
-         * OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-         * ```
-         * 
-         * 5. INSTALL REQUIRED PACKAGES:
-         * ```
-         * pip install openai django
-         * ```
-         * 
-         * SECURITY FEATURES:
-         * - API key never exposed to client-side code
-         * - CSRF protection included in requests
-         * - All API calls go through your controlled Django backend
-         * - Error messages are sanitized before sending to client
-         * 
-         * CONVERSATION HISTORY:
-         * - System message: Sets the AI's role and behavior
-         * - User messages: What the user typed
-         * - Assistant messages: AI responses
-         * This history is sent with each request to maintain context
-         * 
-         * ERROR HANDLING:
-         * - Network connectivity issues
-         * - Django backend errors
-         * - OpenAI API errors (handled on backend)
-         * - Invalid responses
-         * - CSRF token issues
-         * 
-         * RENDER.COM DEPLOYMENT:
-         * - Set OPENAI_API_KEY in Render dashboard environment variables
-         * - Ensure gunicorn is in requirements.txt
-         * - Use proper Django production settings
-         * - Static files handled by WhiteNoise
-         */
-    </script>
+		  chatInput.focus();
+		})();
+	</script>
 </body>
 </html>

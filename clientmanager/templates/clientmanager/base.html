@@ -238,6 +238,11 @@
 
         // URL to load in iframe - you can change this to any URL
         const iframeURL = 'https://www.example.com';
+		
+		function hideLoading () {
+			  document.getElementById('loadingIndicator').style.display = 'none';
+			}
+			window.hideLoading = hideLoading;   // ← make it global for the inline handler
 
         function openPanel() {
             iframePanel.classList.add('active');

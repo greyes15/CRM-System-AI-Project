@@ -1,6 +1,5 @@
 from django.urls import path
 from . import views 
-from .views import chat_api
 
 urlpatterns = [
     path('', views.home_view, name='home'),
@@ -22,5 +21,5 @@ urlpatterns = [
     path('team-task-main/', views.team_task_main_view, name='team_task_main'),  
     path('team-task/', views.team_task_view, name='team_task'),  
     path('AIChatBox/', views.AIChatBox_view, name='AIChatBox'),  
-    path('chat_api/', chat_api, name='chat_api'),
+    path("chat-proxy/", views.chat_proxy, name="chat_proxy"),
 ]
