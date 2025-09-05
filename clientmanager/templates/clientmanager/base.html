@@ -1,303 +1,191 @@
+{# templates/clientmanager/base.html #}
 <!DOCTYPE html>
 <html lang="en">
 {% load static %}
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>{% block title %}My Site{% endblock %}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+  <title>{% block title %}My Site{% endblock %}</title>
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="{% static 'clientmanager/assets/bootstrap/css/bootstrap.min.css' %}">
+  <!-- Styles -->
+  <link rel="stylesheet" href="{% static 'clientmanager/assets/bootstrap/css/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i&amp;display=swap">
+  <link rel="stylesheet" href="{% static 'clientmanager/assets/fonts/fontawesome-all.min.css' %}">
+  <link rel="stylesheet" href="{% static 'clientmanager/assets/css/bss-overrides.css' %}">
 
-    <!-- Google Fonts (leave this unchanged) -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i&amp;display=swap">
+  {% block extra_head %}{% endblock %}
 
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="{% static 'clientmanager/assets/fonts/fontawesome-all.min.css' %}">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;background:#f5f5f5;min-height:100vh;}
+    .floating-btn{position:fixed;bottom:30px;right:30px;width:80px;height:60px;background:linear-gradient(135deg,#ff6b6b,#ee5a24);border:none;border-radius:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 25px rgba(0,0,0,.2);transition:.3s cubic-bezier(.4,0,.2,1);z-index:1000;overflow:hidden;}
+    .floating-btn:hover{transform:scale(1.1);box-shadow:0 15px 35px rgba(0,0,0,.3);}
+    .floating-btn:active{transform:scale(.95);}
+    .floating-btn::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transition:left .5s;}
+    .floating-btn:hover::before{left:100%;}
+    .btn-text{color:#fff;font-size:14px;font-weight:600;letter-spacing:.5px;transition:transform .3s ease;}
+    .floating-btn:hover .btn-text{transform:scale(1.1);}
+    .iframe-panel{position:fixed;top:0;right:-400px;width:400px;height:100vh;background:#fff;box-shadow:-5px 0 20px rgba(0,0,0,.1);z-index:999;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
+    .iframe-panel.active{right:0;}
+    .panel-header{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:20px;display:flex;align-items:center;justify-content:space-between;min-height:70px;}
+    .panel-title{font-size:1.2rem;font-weight:600;}
+    .close-btn{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:5px;border-radius:50%;width:35px;height:35px;display:flex;align-items:center;justify-content:center;transition:background .2s;}
+    .close-btn:hover{background:rgba(255,255,255,.1);}
+    .iframe-container{flex:1;position:relative;overflow:hidden;}
+    .iframe-content{width:100%;height:100%;border:none;background:#f5f5f5;}
+    .loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#666;font-size:1.1rem;text-align:center;}
+    .spinner{width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #667eea;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;}
+    @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    @media (max-width:768px){.iframe-panel{width:100%;right:-100%}.floating-btn{bottom:20px;right:20px;width:70px;height:55px}}
+  </style>
 
-    <!-- Custom Overrides -->
-    <link rel="stylesheet" href="{% static 'clientmanager/assets/css/bss-overrides.css' %}">
-
-
-	  {% block extra_head %}
-	  {% endblock %}
-	<style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f5;
-            min-height: 100vh;
-        }
-
-        .floating-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 80px;
-            height: 60px;
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            border: none;
-            border-radius: 30px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1000;
-            overflow: hidden;
-        }
-
-        .floating-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-        }
-
-        .floating-btn:active {
-            transform: scale(0.95);
-        }
-
-        .floating-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .floating-btn:hover::before {
-            left: 100%;
-        }
-
-        .btn-text {
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            transition: transform 0.3s ease;
-        }
-
-        .floating-btn:hover .btn-text {
-            transform: scale(1.1);
-        }
-
-        .iframe-panel {
-            position: fixed;
-            top: 0;
-            right: -400px;
-            width: 400px;
-            height: 100vh;
-            background: white;
-            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.1);
-            z-index: 999;
-            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .iframe-panel.active {
-            right: 0;
-        }
-
-        .panel-header {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            min-height: 70px;
-        }
-
-        .panel-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 50%;
-            width: 35px;
-            height: 35px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s ease;
-        }
-
-        .close-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .iframe-container {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .iframe-content {
-            width: 100%;
-            height: 100%;
-            border: none;
-            background: #f5f5f5;
-        }
-
-        .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #666;
-            font-size: 1.1rem;
-            text-align: center;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            .iframe-panel {
-                width: 100%;
-                right: -100%;
-            }
-            
-            .floating-btn {
-                bottom: 20px;
-                right: 20px;
-                width: 70px;
-                height: 55px;
-            }
-        }
-	</style>
+  <!-- Pass Django user data to JavaScript -->
+  <script>
+    window.currentUser = {
+      username: "{% if user.is_authenticated %}{{ user.username|escapejs }}{% else %}guest{% endif %}",
+      isAuthenticated: {% if user.is_authenticated %}true{% else %}false{% endif %}
+    };
+  </script>
 </head>
 <body>
-    {% include 'clientmanager/navbar.html' %}
+  {% include 'clientmanager/navbar.html' %}
 
-        {% block content %}
-        {% endblock %}
-    <button class="floating-btn" id="floatingBtn">
-        <span class="btn-text">AI Help</span>
-    </button>
+  {% block content %}{% endblock %}
 
-    <div class="iframe-panel" id="iframePanel">
-        <div class="panel-header">
-            <div class="panel-title">External Content</div>
-            <button class="close-btn" id="closeBtn">&times;</button>
-        </div>
-        <div class="iframe-container">
-            <div class="loading" id="loadingIndicator">
-                <div class="spinner"></div>
-                Loading content...
-            </div>
-				<iframe 
-					class="iframe-content" 
-					id="iframeContent"
-					src="{% url 'AIChatBox' %}"
-					onload="hideLoading()"
-					style="width: 100%; height: 90%; border: none;;">
-				</iframe>
-        </div>
+  <!-- Floating panel -->
+  <button class="floating-btn d-none" id="floatingBtn">
+    <span class="btn-text">AI Help</span>
+  </button>
+
+  <div class="iframe-panel" id="iframePanel">
+    <div class="panel-header">
+      <div class="panel-title">External Content</div>
+      <button class="close-btn" id="closeBtn">&times;</button>
     </div>
+    <div class="iframe-container">
+      <div class="loading" id="loadingIndicator">
+        <div class="spinner"></div>
+        Loading content...
+      </div>
+      <iframe
+        class="iframe-content"
+        id="iframeContent"
+        src="{% url 'AIChatBox' %}"
+        onload="hideLoading()"
+        style="width:100%; height:90%; border:none;">
+      </iframe>
+    </div>
+  </div>
 
-    <!-- JS Scripts -->
-    <script src="{% static 'clientmanager/assets/bootstrap/js/bootstrap.min.js' %}"></script>
-    <script src="{% static 'clientmanager/assets/js/chart.min.js' %}"></script>
-    <script src="{% static 'clientmanager/assets/js/theme.js' %}"></script>
-    <script src="{% static 'clientmanager/assets/js/bs-init.js' %}"></script>
-	<script>
-        const floatingBtn = document.getElementById('floatingBtn');
-        const iframePanel = document.getElementById('iframePanel');
-        const closeBtn = document.getElementById('closeBtn');
-        const iframeContent = document.getElementById('iframeContent');
-        const loadingIndicator = document.getElementById('loadingIndicator');
+  <!-- Core JS -->
+  <script src="{% static 'clientmanager/assets/bootstrap/js/bootstrap.min.js' %}"></script>
+  <script src="{% static 'clientmanager/assets/js/chart.min.js' %}"></script>
+  <script src="{% static 'clientmanager/assets/js/theme.js' %}"></script>
+  <script src="{% static 'clientmanager/assets/js/bs-init.js' %}"></script>
 
-        // URL to load in iframe - you can change this to any URL
-        const iframeURL = 'https://www.example.com';
-		
-		function hideLoading () {
-			  document.getElementById('loadingIndicator').style.display = 'none';
-			}
-			window.hideLoading = hideLoading;   // ← make it global for the inline handler
+  <script>
+    const floatingBtn = document.getElementById('floatingBtn');
+    const iframePanel = document.getElementById('iframePanel');
+    const closeBtn = document.getElementById('closeBtn');
+    const iframeContent = document.getElementById('iframeContent');
+    const loadingIndicator = document.getElementById('loadingIndicator');
 
-        function openPanel() {
-            iframePanel.classList.add('active');
-            
-            // Load iframe content
-            if (!iframeContent.src) {
-                showLoading();
-                iframeContent.src = iframeURL;
-            } else {
-                iframeContent.style.display = 'block';
-            }
-        }
+    function hideLoading(){ loadingIndicator.style.display='none'; iframeContent.style.display='block'; }
+    window.hideLoading = hideLoading;
 
-        function closePanel() {
-            iframePanel.classList.remove('active');
-        }
+    function togglePanel(){ iframePanel.classList.toggle('active'); }
+    function closePanel(){ iframePanel.classList.remove('active'); }
 
-        function showLoading() {
-            loadingIndicator.style.display = 'block';
-            iframeContent.style.display = 'none';
-        }
+    floatingBtn.addEventListener('click', togglePanel);
+    closeBtn.addEventListener('click', closePanel);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && iframePanel.classList.contains('active')) closePanel(); });
+	(function () {
+	  function getCookie(name){
+		const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+		return m ? decodeURIComponent(m.pop()) : null;
+	  }
+	  const u = getCookie("username") || getCookie("participant_id") || "";
 
-        function hideLoading() {
-            loadingIndicator.style.display = 'none';
-            iframeContent.style.display = 'block';
-        }
+	  // Only show AI Help button if username has -GRPB or -GRPC
+	  if (/-GRPB|-GRPC/.test(u)) {
+		const btn = document.getElementById("floatingBtn");
+		if (btn) btn.classList.remove("d-none");
+	  }
+	})();
+	
+	(function(){
+	  function getCookie(name){
+		let v=null; if(!document.cookie) return v;
+		for(let c of document.cookie.split(";")){
+		  c=c.trim();
+		  if(c.startsWith(name+"=")){ v=decodeURIComponent(c.slice(name.length+1)); break; }
+		}
+		return v;
+	  }
+	  function descriptorFor(el){
+		if(!el) return "UNKNOWN";
+		const t = el.closest?.('[data-track], a, button, [role="button"], input, textarea, select') || el;
+		const tag = (t.tagName || "NODE").toUpperCase();
+		const id = t.id ? `#${t.id}` : "";
+		const cls = (t.className && typeof t.className === "string") ? "."+t.className.trim().split(/\s+/).join(".") : "";
+		const label = t.getAttribute?.("aria-label") || t.getAttribute?.("title") || "";
+		const text = (t.innerText || "").trim().slice(0,50);
+		const name = t.getAttribute?.("name") || "";
+		let extra = label || name || text;
+		if (extra) extra = ` - "${extra}"`;
+		return `${tag}${id}${cls}${extra}`;
+	  }
+	  function sendEvent(eventType, element, value, page, keepalive){
+		const payload = {
+		  username: getCookie("username") || getCookie("participant_id") || "guest",
+		  event_type: eventType,
+		  element: element,
+		  value: value,
+		  page: page
+		};
+		fetch("/track-event/", {
+		  method: "POST",
+		  credentials: "same-origin",
+		  keepalive: !!keepalive,
+		  headers: {
+			"Content-Type": "application/json",
+			"X-CSRFToken": getCookie("csrftoken")
+		  },
+		  body: JSON.stringify(payload)
+		}).catch(()=>{});
+	  }
 
-        function togglePanel() {
-            if (iframePanel.classList.contains('active')) {
-                closePanel();
-            } else {
-                openPanel();
-            }
-        }
+	  // clicks (capture early; use keepalive if navigating)
+	  document.addEventListener("click", function(e){
+		let target = e.target instanceof Element ? e.target : document.elementFromPoint(e.clientX, e.clientY);
+		const desc = descriptorFor(target);
+		const a = target?.closest && target.closest("a[href]");
+		const willNav = !!a && a.getAttribute("href") && a.target !== "_blank" && !a.hasAttribute("download");
+		sendEvent("click", desc, "", window.location.pathname, willNav);
+	  }, true);
 
-        // Event listeners
-        floatingBtn.addEventListener('click', togglePanel);
-        closeBtn.addEventListener('click', closePanel);
+	  // typing
+	  document.addEventListener("input", function(e){
+		const el = e.target;
+		if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
+		  sendEvent("input", descriptorFor(el), el.value || "", window.location.pathname, false);
+		}
+	  });
 
-        // Close panel with Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && iframePanel.classList.contains('active')) {
-                closePanel();
-            }
-        });
-	</script>
-	  {% block extra_js %}{% endblock %}
+	  // optional pageview
+	  document.addEventListener("DOMContentLoaded", function(){
+		sendEvent("pageview", "DOCUMENT", "", window.location.pathname, false);
+	  });
+	})();
+	
+</script>
 
+  <footer class="bg-white sticky-footer mt-auto">
+    <div class="container my-auto">
+      <div class="text-center my-auto copyright">
+        <span>Copyright © Brand 2025 BLUE</span>
+      </div>
+    </div>
+  </footer>
 </body>
-
-	<footer class="bg-white sticky-footer mt-auto">
-		<div class="container my-auto">
-			<div class="text-center my-auto copyright">
-				<span>Copyright © Brand 2025 BLUE</span>
-			</div>
-		</div>
-	</footer>
 </html>

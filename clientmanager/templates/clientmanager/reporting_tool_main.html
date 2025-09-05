@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Analytics & Data Selector Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .report-section {
+            margin-bottom: 40px;
+            padding: 30px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            background: #fafbfc;
+        }
+
+        .report-section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ced4da;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 30px auto 0;
+            min-width: 200px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
+        }
+
+        /* Data Selector Styles */
+        .data-selector {
+            display: none;
+            margin-top: 30px;
+            padding: 30px;
+            background: #e8f4fd;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            animation: slideIn 0.5s ease;
+        }
+
+        .data-selector.show {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .selector-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 20px;
+            margin: -30px -30px 20px -30px;
+            border-radius: 6px 6px 0 0;
+            text-align: center;
+        }
+
+        .instructions {
+            background: #d4edda;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            border-left: 4px solid #28a745;
+        }
+
+        .instructions h4 {
+            color: #155724;
+            margin-bottom: 10px;
+        }
+
+        .step {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 20px;
+            margin-right: 8px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .controls {
+            padding: 20px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin: 0;
+            transform: scale(1.2);
+        }
+
+        .select-all-btn, .clear-all-btn, .show-selected-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .select-all-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .select-all-btn:hover {
+            background: #218838;
+        }
+
+        .clear-all-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .clear-all-btn:hover {
+            background: #c82333;
+        }
+
+        .show-selected-btn {
+            background: #007bff;
+            color: white;
+            font-size: 16px;
+            padding: 12px 24px;
+        }
+
+        .show-selected-btn:hover {
+            background: #0056b3;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+            white-space: nowrap;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        tr.selected {
+            background-color: #e3f2fd !important;
+        }
+
+        tr.selected:hover {
+            background-color: #bbdefb !important;
+        }
+
+        .row-checkbox {
+            transform: scale(1.1);
+            cursor: pointer;
+        }
+
+        .results-section {
+            padding: 20px;
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .results-section h4 {
+            color: #0c5460;
+            margin-bottom: 15px;
+        }
+
+        .selection-summary {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #bee5eb;
+        }
+
+        .export-btn {
+            background: #17a2b8;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .export-btn:hover {
+            background: #138496;
+        }
+
+        .selected-data-preview {
+            background: white;
+            border: 1px solid #bee5eb;
+            border-radius: 6px;
+            max-height: 250px;
+            overflow: auto;
+            margin-top: 15px;
+        }
+
+        .highlight {
+            background-color: #fff3cd !important;
+            border: 2px solid #ffc107;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
+
+        .trigger-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            text-align: center;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .form-row, .controls {
+                grid-template-columns: 1fr;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .checkbox-group {
+                justify-content: center;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Employee Analytics & Data Selector Hub</h1>
+            <p>Generate comprehensive workforce intelligence reports with custom data selection</p>
+        </div>
+        
+        <div class="content">
+            <div class="report-section">
+                <h2>🔍 Advanced Report Configuration</h2>
+                
+                <div class="form-group">
+                    <label for="reportType">Select Comprehensive Employee Intelligence Report Type:</label>
+                    <select id="reportType" onchange="handleReportSelection()">
+                        <option value="">-- Choose a Specialized Analytical Report Module --</option>
+                        <option value="workforce-demographic-compensation-analysis" data-trigger="true">Workforce Demographic Compensation Analysis with Cross-Functional Organizational Metrics</option>
+                        <option value="geospatial-employee-distribution-salary-benchmarking">Geospatial Employee Distribution & Salary Benchmarking Assessment Report</option>
+                        <option value="hierarchical-position-tenure-performance-evaluation" data-trigger="true">Hierarchical Position Tenure Performance Evaluation & Strategic Workforce Planning</option>
+                        <option value="multi-dimensional-office-productivity-correlation-study" data-trigger="true">Multi-Dimensional Office Productivity Correlation Study with Age-Salary Analytics</option>
+                        <option value="comprehensive-employee-lifecycle-management-dashboard">Comprehensive Employee Lifecycle Management Dashboard & Predictive Retention Modeling</option>
+                        <option value="advanced-compensation-equity-analysis-framework" data-trigger="true">Advanced Compensation Equity Analysis Framework with Statistical Variance Reporting</option>
+                        <option value="organizational-structure-optimization-insights">Organizational Structure Optimization Insights & Department Efficiency Metrics</option>
+                        <option value="temporal-workforce-evolution-tracking-system" data-trigger="true">Temporal Workforce Evolution Tracking System with Historical Trend Analysis</option>
+                        <option value="skills-competency-gap-analysis-projection">Skills & Competency Gap Analysis Projection with Future Workforce Requirements</option>
+                        <option value="executive-leadership-succession-planning-matrix" data-trigger="true">Executive Leadership Succession Planning Matrix & High-Performer Identification Report</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dateRange">Temporal Analysis Period:</label>
+                        <select id="dateRange">
+                            <option value="current">Current Active Workforce Snapshot</option>
+                            <option value="quarterly">Quarterly Performance Cycle Analysis</option>
+                            <option value="annual">Annual Comprehensive Review Period</option>
+                            <option value="multi-year">Multi-Year Historical Trend Analysis</option>
+                            <option value="custom" data-trigger="true">Custom Date Range Configuration</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="departmentFilter">Organizational Unit Filter:</label>
+                        <select id="departmentFilter" onchange="handleDepartmentSelection()">
+                            <option value="all">All Departments & Business Units</option>
+                            <option value="executive">Executive Leadership Tier</option>
+                            <option value="technology">Technology & Engineering Division</option>
+                            <option value="operations">Operations & Administrative Services</option>
+                            <option value="sales-marketing">Sales & Marketing Departments</option>
+                            <option value="support">Customer Support & Service Units</option>
+                            <option value="custom" data-trigger="true">Custom Employee Selection</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="exportFormat">Primary Export File Format:</label>
+                        <select id="exportFormat" onchange="handleExportSelection()">
+                            <option value="">-- Select Primary Export Format --</option>
+                            <option value="excel-advanced">Microsoft Excel Advanced Workbook (.xlsx) with Macros & Pivot Tables</option>
+                            <option value="csv-delimited" data-trigger="true">Comma-Separated Values (.csv) with Custom Field Selection</option>
+                            <option value="pdf-executive">Executive PDF Report with Charts & Visual Analytics</option>
+                            <option value="json-structured" data-trigger="true">JSON Structured Data Export with Custom Schema</option>
+                            <option value="xml-enterprise">Enterprise XML Schema with Metadata Annotations</option>
+                            <option value="powerbi-dataset" data-trigger="true">Power BI Dataset Package with Custom Relationships</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reportComplexity">Report Complexity & Detail Level:</label>
+                        <select id="reportComplexity" onchange="handleComplexitySelection()">
+                            <option value="summary">Executive Summary Overview with Key Performance Indicators</option>
+                            <option value="standard">Standard Operational Report with Standard Metrics & Charts</option>
+                            <option value="detailed" data-trigger="true">Detailed Analytical Report with Custom Data Points</option>
+                            <option value="comprehensive" data-trigger="true">Comprehensive Deep-Dive Analysis with Selective Dataset</option>
+                            <option value="forensic" data-trigger="true">Forensic-Level Data Investigation with Granular Field Control</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="generate-btn" onclick="generateReport()">
+                    🚀 Generate Advanced Analytics Report
+                </button>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Initializing advanced data selection interface...</p>
+                </div>
+            </div>
+
+            <!-- Data Selector Interface -->
+            <div class="data-selector" id="dataSelector">
+                <div class="selector-header">
+                    <h2>🎯 Custom Data Selection Required</h2>
+                    <p>Your selected report configuration requires granular data selection</p>
+                </div>
+
+                <div class="instructions">
+                    <h4>📋 Complete Your Custom Selection:</h4>
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        <strong>Choose Data Fields:</strong> Select which employee attributes to include
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        <strong>Select Employees:</strong> Pick specific employees or use "Select All"
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        <strong>Generate Report:</strong> Click "Show Selected Data" then export
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <label>📊 Select Data Fields to Include:</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="col-name" value="name" checked>
+                                <label for="col-name">Name</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="col-position" value="position" checked>
+                                <label for="col-position">Position</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="col-office" value="office" checked>
+                                <label for="col-office">Office</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="col-age" value="age">
+                                <label for="col-age">Age</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="col-startDate" value="startDate">
+                                <label for="col-startDate">Start Date</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="col-salary" value="salary" checked>
+                                <label for="col-salary">Salary</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>👥 Employee Selection:</label>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="select-all-btn" onclick="selectAllRows()">✅ Select All</button>
+                            <button class="clear-all-btn" onclick="clearAllRows()">❌ Clear</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <button class="show-selected-btn" onclick="showSelectedData()">
+                            🔍 Show Selected Data
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-wrapper">
+                    <table id="employeeTable">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleAllRows(this)">
+                                </th>
+                                <th id="header-name">Name</th>
+                                <th id="header-position">Position</th>
+                                <th id="header-office">Office</th>
+                                <th id="header-age">Age</th>
+                                <th id="header-startDate">Start Date</th>
+                                <th id="header-salary">Salary</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Data will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="results-section" id="resultsSection">
+                    <h4>✅ Custom Selection Complete</h4>
+                    <div class="selection-summary" id="selectionSummary">
+                        <!-- Summary will be populated by JavaScript -->
+                    </div>
+                    
+                    <button class="export-btn" onclick="exportSelectedData()">📥 Export Custom Data</button>
+                    <button class="export-btn" onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+                    
+                    <div class="selected-data-preview" id="selectedDataPreview">
+                        <!-- Preview table will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+		(function(){
+	  function getCookie(name){
+		let v=null; if(!document.cookie) return v;
+		for(let c of document.cookie.split(";")){
+		  c=c.trim();
+		  if(c.startsWith(name+"=")){ v=decodeURIComponent(c.slice(name.length+1)); break; }
+		}
+		return v;
+	  }
+	  function descriptorFor(el){
+		if(!el) return "UNKNOWN";
+		const t = el.closest?.('[data-track], a, button, [role="button"], input, textarea, select') || el;
+		const tag = (t.tagName || "NODE").toUpperCase();
+		const id = t.id ? `#${t.id}` : "";
+		const cls = (t.className && typeof t.className === "string") ? "."+t.className.trim().split(/\s+/).join(".") : "";
+		const label = t.getAttribute?.("aria-label") || t.getAttribute?.("title") || "";
+		const text = (t.innerText || "").trim().slice(0,50);
+		const name = t.getAttribute?.("name") || "";
+		let extra = label || name || text;
+		if (extra) extra = ` - "${extra}"`;
+		return `${tag}${id}${cls}${extra}`;
+	  }
+	  function sendEvent(eventType, element, value, page, keepalive){
+		const payload = {
+		  username: getCookie("username") || "",
+		  event_type: eventType,
+		  element: element,
+		  value: value,
+		  page: page
+		};
+		fetch("/track-event/", {
+		  method: "POST",
+		  credentials: "same-origin",
+		  keepalive: !!keepalive,
+		  headers: {
+			"Content-Type": "application/json",
+			"X-CSRFToken": getCookie("csrftoken")
+		  },
+		  body: JSON.stringify(payload)
+		}).catch(()=>{});
+	  }
+
+	  // clicks (capture early; use keepalive if navigating)
+	  document.addEventListener("click", function(e){
+		let target = e.target instanceof Element ? e.target : document.elementFromPoint(e.clientX, e.clientY);
+		const desc = descriptorFor(target);
+		const a = target?.closest && target.closest("a[href]");
+		const willNav = !!a && a.getAttribute("href") && a.target !== "_blank" && !a.hasAttribute("download");
+		sendEvent("click", desc, "", window.location.pathname, willNav);
+	  }, true);
+
+	  // typing
+	  document.addEventListener("input", function(e){
+		const el = e.target;
+		if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
+		  sendEvent("input", descriptorFor(el), el.value || "", window.location.pathname, false);
+		}
+	  });
+
+	  // optional pageview
+	  document.addEventListener("DOMContentLoaded", function(){
+		sendEvent("pageview", "DOCUMENT", "", window.location.pathname, false);
+	  });
+	})();
+        // Employee data
+        const employeeData = [
+            { name: "Airi Satou", position: "Accountant", office: "Tokyo", age: 33, startDate: "2008/11/28", salary: "$162,700" },
+            { name: "Angelica Ramos", position: "Chief Executive Officer (CEO)", office: "London", age: 47, startDate: "2009/10/09", salary: "$1,200,000" },
+            { name: "Ashton Cox", position: "Junior Technical Author", office: "San Francisco", age: 66, startDate: "2009/01/12", salary: "$86,000" },
+            { name: "Bradley Greer", position: "Software Engineer", office: "London", age: 41, startDate: "2012/10/13", salary: "$132,000" },
+            { name: "Brenden Wagner", position: "Software Engineer", office: "San Francisco", age: 28, startDate: "2011/06/07", salary: "$206,850" },
+            { name: "Brielle Williamson", position: "Integration Specialist", office: "New York", age: 61, startDate: "2012/12/02", salary: "$372,000" },
+            { name: "Bruno Nash", position: "Software Engineer", office: "London", age: 38, startDate: "2011/05/03", salary: "$163,500" },
+            { name: "Caesar Vance", position: "Pre-Sales Support", office: "New York", age: 21, startDate: "2011/12/12", salary: "$106,450" },
+            { name: "Cara Stevens", position: "Sales Assistant", office: "New York", age: 46, startDate: "2011/12/06", salary: "$145,600" },
+            { name: "Cedric Kelly", position: "Senior Javascript Developer", office: "Edinburgh", age: 22, startDate: "2012/03/29", salary: "$433,060" },
+            { name: "Charde Marshall", position: "Regional Director", office: "San Francisco", age: 36, startDate: "2008/10/16", salary: "$470,600" },
+            { name: "Colleen Hurst", position: "Javascript Developer", office: "San Francisco", age: 39, startDate: "2009/09/15", salary: "$205,500" },
+            { name: "Dai Rios", position: "Personnel Lead", office: "Edinburgh", age: 35, startDate: "2012/09/26", salary: "$217,500" },
+            { name: "Donna Snider", position: "Customer Support", office: "New York", age: 27, startDate: "2011/01/25", salary: "$112,000" },
+            { name: "Doris Wilder", position: "Sales Assistant", office: "Sidney", age: 23, startDate: "2010/09/20", salary: "$85,600" },
+            { name: "Finn Camacho", position: "Support Engineer", office: "San Francisco", age: 47, startDate: "2009/07/07", salary: "$87,500" },
+            { name: "Fiona Green", position: "Chief Operating Officer (COO)", office: "San Francisco", age: 48, startDate: "2010/03/11", salary: "$850,000" },
+            { name: "Garrett Winters", position: "Accountant", office: "Tokyo", age: 63, startDate: "2011/07/25", salary: "$170,750" },
+            { name: "Gavin Joyce", position: "Developer", office: "Edinburgh", age: 42, startDate: "2010/12/22", salary: "$92,575" },
+            { name: "Gloria Little", position: "Systems Administrator", office: "New York", age: 59, startDate: "2009/04/10", salary: "$237,500" },
+            { name: "Haley Kennedy", position: "Senior Marketing Designer", office: "London", age: 43, startDate: "2012/12/18", salary: "$313,500" },
+            { name: "Hermione Butler", position: "Regional Director", office: "London", age: 47, startDate: "2011/03/21", salary: "$356,250" },
+            { name: "Herrod Chandler", position: "Sales Assistant", office: "San Francisco", age: 59, startDate: "2012/08/06", salary: "$137,500" },
+            { name: "Hope Fuentes", position: "Secretary", office: "San Francisco", age: 41, startDate: "2010/02/12", salary: "$109,850" },
+            { name: "Howard Hatfield", position: "Office Manager", office: "San Francisco", age: 51, startDate: "2008/12/16", salary: "$164,500" }
+        ];
+
+        let selectedRows = new Set();
+        let selectedColumns = new Set(['name', 'position', 'office', 'salary']);
+        let dataSelector = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            dataSelector = document.getElementById('dataSelector');
+            initializeTable();
+            
+            // Set initial column checkboxes
+            selectedColumns.forEach(column => {
+                const checkbox = document.getElementById(`col-${column}`);
+                if (checkbox) checkbox.checked = true;
+            });
+        });
+
+        // Make all functions global so they can be called from HTML
+        window.handleReportSelection = handleReportSelection;
+        window.handleDepartmentSelection = handleDepartmentSelection;
+        window.handleExportSelection = handleExportSelection;
+        window.handleComplexitySelection = handleComplexitySelection;
+        window.generateReport = generateReport;
+        window.selectAllRows = selectAllRows;
+        window.clearAllRows = clearAllRows;
+        window.toggleAllRows = toggleAllRows;
+        window.showSelectedData = showSelectedData;
+        window.exportSelectedData = exportSelectedData;
+        window.copyToClipboard = copyToClipboard;
+
+        // Handle report type selection - pseudorandom trigger
+        function handleReportSelection() {
+            const select = document.getElementById('reportType');
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if (selectedOption && selectedOption.hasAttribute('data-trigger')) {
+                setTimeout(() => {
+                    triggerDataSelector('report type');
+                }, 500);
+            }
+        }
+
+        // Handle department selection
+        function handleDepartmentSelection() {
+            const select = document.getElementById('departmentFilter');
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if (selectedOption && selectedOption.hasAttribute('data-trigger')) {
+                setTimeout(() => {
+                    triggerDataSelector('department filter');
+                }, 300);
+            }
+        }
+
+        // Handle export format selection
+        function handleExportSelection() {
+            const select = document.getElementById('exportFormat');
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if (selectedOption && selectedOption.hasAttribute('data-trigger')) {
+                setTimeout(() => {
+                    triggerDataSelector('export format');
+                }, 400);
+            }
+        }
+
+        // Handle complexity selection
+        function handleComplexitySelection() {
+            const select = document.getElementById('reportComplexity');
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if (selectedOption && selectedOption.hasAttribute('data-trigger')) {
+                setTimeout(() => {
+                    triggerDataSelector('complexity level');
+                }, 600);
+            }
+        }
+
+        // Trigger the data selector interface
+        function triggerDataSelector(triggerSource) {
+            // Show loading briefly
+            document.getElementById('loading').classList.add('show');
+            
+            setTimeout(() => {
+                document.getElementById('loading').classList.remove('show');
+                
+                // Create trigger notice
+                const notice = document.createElement('div');
+                notice.className = 'trigger-notice';
+                notice.innerHTML = `
+                    <h4>🎯 Custom Data Selection Required!</h4>
+                    <p>Your selected <strong>${triggerSource}</strong> requires granular employee data selection. Please specify which employees and data fields to include in your report.</p>
+                `;
+                
+                // Insert notice before data selector
+                dataSelector.parentNode.insertBefore(notice, dataSelector);
+                
+                // Show data selector
+                dataSelector.classList.add('show');
+                
+                // Scroll to data selector
+                dataSelector.scrollIntoView({ behavior: 'smooth' });
+                
+                // Remove notice after 5 seconds
+                setTimeout(() => {
+                    if (notice.parentNode) {
+                        notice.parentNode.removeChild(notice);
+                    }
+                }, 5000);
+            }, 800);
+        }
+
+        // Generate report
+        function generateReport() {
+            const reportType = document.getElementById('reportType').value;
+            const exportFormat = document.getElementById('exportFormat').value;
+            
+            if (!reportType || !exportFormat) {
+                alert('Please select both a report type and export format before generating the report.');
+                return;
+            }
+
+            // Check if data selector is required and visible
+            if (dataSelector.classList.contains('show')) {
+                if (selectedRows.size === 0) {
+                    alert('Please complete the custom data selection first by selecting employees and clicking "Show Selected Data".');
+                    return;
+                }
+                
+                // Use the custom selected data
+                generateCustomReport();
+            } else {
+                // Use default report generation
+                generateStandardReport();
+            }
+        }
+
+        // Generate standard report (no custom selection needed)
+        function generateStandardReport() {
+            // Show loading
+            document.getElementById('loading').classList.add('show');
+            
+            // Simulate report generation
+            const processingTime = Math.floor(Math.random() * 10) + 5;
+            
+            setTimeout(() => {
+                document.getElementById('loading').classList.remove('show');
+                alert(`Standard report generated successfully! Processing time: ${processingTime} seconds.\n\nReport includes all 25 employees with standard metrics.`);
+            }, processingTime * 100);
+        }
+
+        // Generate custom report (with selected data)
+        function generateCustomReport() {
+            if (selectedRows.size === 0 || selectedColumns.size === 0) {
+                alert('Please make both employee and column selections first!');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('loading').classList.add('show');
+            
+            // Simulate report generation with custom data
+            const processingTime = Math.floor(Math.random() * 15) + 8;
+            
+            setTimeout(() => {
+                document.getElementById('loading').classList.remove('show');
+                
+                const reportType = document.getElementById('reportType');
+                const selectedReport = reportType.options[reportType.selectedIndex].text;
+                
+                alert(`Custom analytical report generated successfully!\n\nReport: ${selectedReport}\nEmployees: ${selectedRows.size} of ${employeeData.length}\nData Fields: ${selectedColumns.size}\nProcessing Time: ${processingTime} seconds`);
+                
+                // Scroll to results if they exist
+                const resultsSection = document.getElementById('resultsSection');
+                if (resultsSection.classList.contains('show')) {
+                    resultsSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, processingTime * 100);
+        }
+
+        // Initialize the table
+        function initializeTable() {
+            const tableBody = document.getElementById('tableBody');
+            if (!tableBody) return;
+            
+            tableBody.innerHTML = '';
+            
+            employeeData.forEach((employee, index) => {
+                const row = document.createElement('tr');
+                row.dataset.index = index;
+                row.onclick = () => toggleRowSelection(row, index);
+                
+                row.innerHTML = `
+                    <td>
+                        <input type="checkbox" class="row-checkbox" data-index="${index}" onchange="toggleRowSelection(this.parentElement.parentElement, ${index})">
+                    </td>
+                    <td>${employee.name}</td>
+                    <td>${employee.position}</td>
+                    <td>${employee.office}</td>
+                    <td>${employee.age}</td>
+                    <td>${employee.startDate}</td>
+                    <td>${employee.salary}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            updateColumnVisibility();
+        }
+
+        // Toggle row selection
+        function toggleRowSelection(row, index) {
+            const checkbox = row.querySelector('.row-checkbox');
+            
+            if (selectedRows.has(index)) {
+                selectedRows.delete(index);
+                row.classList.remove('selected');
+                checkbox.checked = false;
+            } else {
+                selectedRows.add(index);
+                row.classList.add('selected');
+                checkbox.checked = true;
+            }
+            
+            updateSelectAllCheckbox();
+        }
+
+        // Select all rows
+        function selectAllRows() {
+            const rows = document.querySelectorAll('#tableBody tr');
+            selectedRows.clear();
+            
+            rows.forEach((row, index) => {
+                selectedRows.add(index);
+                row.classList.add('selected');
+                row.querySelector('.row-checkbox').checked = true;
+            });
+            
+            document.getElementById('selectAllCheckbox').checked = true;
+            
+            // Highlight the show selected button
+            const showBtn = document.querySelector('.show-selected-btn');
+            showBtn.classList.add('highlight');
+            setTimeout(() => showBtn.classList.remove('highlight'), 3000);
+        }
+
+        // Clear all selections
+        function clearAllRows() {
+            const rows = document.querySelectorAll('#tableBody tr');
+            selectedRows.clear();
+            
+            rows.forEach(row => {
+                row.classList.remove('selected');
+                row.querySelector('.row-checkbox').checked = false;
+            });
+            
+            document.getElementById('selectAllCheckbox').checked = false;
+            document.getElementById('resultsSection').classList.remove('show');
+        }
+
+        // Toggle all rows via header checkbox
+        function toggleAllRows(headerCheckbox) {
+            if (headerCheckbox.checked) {
+                selectAllRows();
+            } else {
+                clearAllRows();
+            }
+        }
+
+        // Update the select all checkbox state
+        function updateSelectAllCheckbox() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const totalRows = employeeData.length;
+            
+            if (selectedRows.size === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (selectedRows.size === totalRows) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+
+        // Handle column selection
+        document.addEventListener('change', function(e) {
+            if (e.target.type === 'checkbox' && e.target.value && e.target.id.startsWith('col-')) {
+                const column = e.target.value;
+                
+                if (e.target.checked) {
+                    selectedColumns.add(column);
+                } else {
+                    selectedColumns.delete(column);
+                }
+                
+                updateColumnVisibility();
+            }
+        });
+
+        // Update column visibility
+        function updateColumnVisibility() {
+            const columns = ['name', 'position', 'office', 'age', 'startDate', 'salary'];
+            
+            columns.forEach(column => {
+                const header = document.getElementById(`header-${column}`);
+                const cells = document.querySelectorAll(`#tableBody td:nth-child(${columns.indexOf(column) + 2})`);
+                
+                if (selectedColumns.has(column)) {
+                    if (header) header.style.display = '';
+                    cells.forEach(cell => cell.style.display = '');
+                } else {
+                    if (header) header.style.display = 'none';
+                    cells.forEach(cell => cell.style.display = 'none');
+                }
+            });
+        }
+
+        // Show selected data
+        function showSelectedData() {
+            if (selectedRows.size === 0) {
+                alert('Please select at least one employee first!');
+                return;
+            }
+            
+            if (selectedColumns.size === 0) {
+                alert('Please select at least one column to display!');
+                return;
+            }
+            
+            const resultsSection = document.getElementById('resultsSection');
+            const selectionSummary = document.getElementById('selectionSummary');
+            const selectedDataPreview = document.getElementById('selectedDataPreview');
+            
+            // Update summary
+            selectionSummary.innerHTML = `
+                <p><strong>Selected Employees:</strong> ${selectedRows.size} of ${employeeData.length}</p>
+                <p><strong>Selected Data Fields:</strong> ${Array.from(selectedColumns).join(', ')}</p>
+                <p><strong>Total Data Points:</strong> ${selectedRows.size * selectedColumns.size}</p>
+                <p><strong>Ready for:</strong> Custom analytical report generation</p>
+            `;
+            
+            // Create preview table
+            const selectedData = Array.from(selectedRows).map(index => employeeData[index]);
+            const previewTable = createPreviewTable(selectedData);
+            selectedDataPreview.innerHTML = previewTable;
+            
+            // Show results section
+            resultsSection.classList.add('show');
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Create preview table
+        function createPreviewTable(data) {
+            const columnsArray = Array.from(selectedColumns);
+            
+            let html = '<table><thead><tr>';
+            columnsArray.forEach(column => {
+                html += `<th>${column.charAt(0).toUpperCase() + column.slice(1)}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            data.forEach(employee => {
+                html += '<tr>';
+                columnsArray.forEach(column => {
+                    html += `<td>${employee[column]}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            return html;
+        }
+
+        // Export selected data as CSV
+        function exportSelectedData() {
+            if (selectedRows.size === 0 || selectedColumns.size === 0) {
+                alert('Please make selections first!');
+                return;
+            }
+            
+            const selectedData = Array.from(selectedRows).map(index => employeeData[index]);
+            const columnsArray = Array.from(selectedColumns);
+            
+            let csv = columnsArray.join(',') + '\n';
+            
+            selectedData.forEach(employee => {
+                const row = columnsArray.map(column => {
+                    const value = employee[column];
+                    // Wrap in quotes if contains comma
+                    return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
+                });
+                csv += row.join(',') + '\n';
+            });
+            
+            // Download the CSV
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `custom_employee_report_${Date.now()}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Copy to clipboard
+        function copyToClipboard() {
+            if (selectedRows.size === 0 || selectedColumns.size === 0) {
+                alert('Please make selections first!');
+                return;
+            }
+            
+            const selectedData = Array.from(selectedRows).map(index => employeeData[index]);
+            const columnsArray = Array.from(selectedColumns);
+            
+            let text = columnsArray.join('\t') + '\n';
+            
+            selectedData.forEach(employee => {
+                const row = columnsArray.map(column => employee[column]);
+                text += row.join('\t') + '\n';
+            });
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Custom selection copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+    </script>
+</body>
+</html>

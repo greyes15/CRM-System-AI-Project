@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views 
+from .views_research import research_login_view 
 
 urlpatterns = [
     path('', views.home_view, name='home'),
@@ -22,4 +23,11 @@ urlpatterns = [
     path('team-task/', views.team_task_view, name='team_task'),  
     path('AIChatBox/', views.AIChatBox_view, name='AIChatBox'),  
     path("chat-proxy/", views.chat_proxy, name="chat_proxy"),
+    path("track-event/", views.track_event, name="track_event"),
+    path("reporting-tool/", views.reporting_tool_view, name="reporting_tool"),
+    path("reporting-tool-main/", views.reporting_tool_main_view, name="reporting_tool_main"),
+    path("research-login/", research_login_view, name="research_login"),
+    path("employee-user-manual/", views.employee_user_manual, name="manual"),
+    path("api/rag_refresh/", views.rag_refresh, name="rag_refresh"),
+    path('test-rag/', views.test_rag, name='test_rag'),
 ]

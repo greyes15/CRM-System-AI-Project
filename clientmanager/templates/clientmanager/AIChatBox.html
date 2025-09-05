@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -198,8 +199,7 @@
 	  <!-- Chat messages area -->
 	  <div class="chat-body" id="chatBody">
 		<div class="message agent">
-		  Hello! I'm your CRM assistant. How can I help you today with your account,
-		  billing, or support questions?
+		  Welcome! I have access to the complete Employee User Manual and can help you understand how to use our systems, navigate features, or find specific procedures. How can I assist you?
 		</div>
 	  </div>
 
@@ -286,6 +286,71 @@
 
 		  chatInput.focus();
 		})();
+		
+	(function(){
+	  function getCookie(name){
+		let v=null; if(!document.cookie) return v;
+		for(let c of document.cookie.split(";")){
+		  c=c.trim();
+		  if(c.startsWith(name+"=")){ v=decodeURIComponent(c.slice(name.length+1)); break; }
+		}
+		return v;
+	  }
+	  function descriptorFor(el){
+		if(!el) return "UNKNOWN";
+		const t = el.closest?.('[data-track], a, button, [role="button"], input, textarea, select') || el;
+		const tag = (t.tagName || "NODE").toUpperCase();
+		const id = t.id ? `#${t.id}` : "";
+		const cls = (t.className && typeof t.className === "string") ? "."+t.className.trim().split(/\s+/).join(".") : "";
+		const label = t.getAttribute?.("aria-label") || t.getAttribute?.("title") || "";
+		const text = (t.innerText || "").trim().slice(0,50);
+		const name = t.getAttribute?.("name") || "";
+		let extra = label || name || text;
+		if (extra) extra = ` - "${extra}"`;
+		return `${tag}${id}${cls}${extra}`;
+	  }
+	  function sendEvent(eventType, element, value, page, keepalive){
+		const payload = {
+		  username: getCookie("username") || "",
+		  event_type: eventType,
+		  element: element,
+		  value: value,
+		  page: page
+		};
+		fetch("/track-event/", {
+		  method: "POST",
+		  credentials: "same-origin",
+		  keepalive: !!keepalive,
+		  headers: {
+			"Content-Type": "application/json",
+			"X-CSRFToken": getCookie("csrftoken")
+		  },
+		  body: JSON.stringify(payload)
+		}).catch(()=>{});
+	  }
+
+	  // clicks (capture early; use keepalive if navigating)
+	  document.addEventListener("click", function(e){
+		let target = e.target instanceof Element ? e.target : document.elementFromPoint(e.clientX, e.clientY);
+		const desc = descriptorFor(target);
+		const a = target?.closest && target.closest("a[href]");
+		const willNav = !!a && a.getAttribute("href") && a.target !== "_blank" && !a.hasAttribute("download");
+		sendEvent("click", desc, "", window.location.pathname, willNav);
+	  }, true);
+
+	  // typing
+	  document.addEventListener("input", function(e){
+		const el = e.target;
+		if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
+		  sendEvent("input", descriptorFor(el), el.value || "", window.location.pathname, false);
+		}
+	  });
+
+	  // optional pageview
+	  document.addEventListener("DOMContentLoaded", function(){
+		sendEvent("pageview", "DOCUMENT", "", window.location.pathname, false);
+	  });
+	})();
 	</script>
 </body>
 </html>

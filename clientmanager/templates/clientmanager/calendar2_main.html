@@ -66,6 +66,72 @@
   <button onclick="confirmSaveNote(false)">Cancel</button>
 </div>
 <script>
+		
+	(function(){
+	  function getCookie(name){
+		let v=null; if(!document.cookie) return v;
+		for(let c of document.cookie.split(";")){
+		  c=c.trim();
+		  if(c.startsWith(name+"=")){ v=decodeURIComponent(c.slice(name.length+1)); break; }
+		}
+		return v;
+	  }
+	  function descriptorFor(el){
+		if(!el) return "UNKNOWN";
+		const t = el.closest?.('[data-track], a, button, [role="button"], input, textarea, select') || el;
+		const tag = (t.tagName || "NODE").toUpperCase();
+		const id = t.id ? `#${t.id}` : "";
+		const cls = (t.className && typeof t.className === "string") ? "."+t.className.trim().split(/\s+/).join(".") : "";
+		const label = t.getAttribute?.("aria-label") || t.getAttribute?.("title") || "";
+		const text = (t.innerText || "").trim().slice(0,50);
+		const name = t.getAttribute?.("name") || "";
+		let extra = label || name || text;
+		if (extra) extra = ` - "${extra}"`;
+		return `${tag}${id}${cls}${extra}`;
+	  }
+	  function sendEvent(eventType, element, value, page, keepalive){
+		const payload = {
+		  username: getCookie("username") || "",
+		  event_type: eventType,
+		  element: element,
+		  value: value,
+		  page: page
+		};
+		fetch("/track-event/", {
+		  method: "POST",
+		  credentials: "same-origin",
+		  keepalive: !!keepalive,
+		  headers: {
+			"Content-Type": "application/json",
+			"X-CSRFToken": getCookie("csrftoken")
+		  },
+		  body: JSON.stringify(payload)
+		}).catch(()=>{});
+	  }
+
+	  // clicks (capture early; use keepalive if navigating)
+	  document.addEventListener("click", function(e){
+		let target = e.target instanceof Element ? e.target : document.elementFromPoint(e.clientX, e.clientY);
+		const desc = descriptorFor(target);
+		const a = target?.closest && target.closest("a[href]");
+		const willNav = !!a && a.getAttribute("href") && a.target !== "_blank" && !a.hasAttribute("download");
+		sendEvent("click", desc, "", window.location.pathname, willNav);
+	  }, true);
+
+	  // typing
+	  document.addEventListener("input", function(e){
+		const el = e.target;
+		if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
+		  sendEvent("input", descriptorFor(el), el.value || "", window.location.pathname, false);
+		}
+	  });
+
+	  // optional pageview
+	  document.addEventListener("DOMContentLoaded", function(){
+		sendEvent("pageview", "DOCUMENT", "", window.location.pathname, false);
+	  });
+	})();
+	
 const canvas = document.getElementById('calendarCanvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -78,7 +144,27 @@ const cols = 7;
 const cellWidth = canvas.width / cols;
 const cellHeight = (canvas.height - 50) / 6;
 
-let events = [];
+// Prepopulated sample events for the CURRENT month/year
+// Times are "HH:MM" so the conflict check (string compare) still works.
+let events = [
+  // Week 1
+  { day: 2,  month, year, title: "Grad Orientation", desc: "Welcome session + Q&A", startTime: "09:00", endTime: "10:30", color: "#7dd3fc" }, // sky blue
+  { day: 3,  month, year, title: "Faculty Meeting", desc: "Agenda: fall initiatives", startTime: "13:00", endTime: "14:00", color: "#fde68a" }, // amber
+  // Week 2
+  { day: 7,  month, year, title: "Writing Workshop", desc: "APA style & citations", startTime: "15:00", endTime: "16:30", color: "#86efac" }, // green
+  { day: 8,  month, year, title: "One-on-One Coaching", desc: "Student success planning", startTime: "11:00", endTime: "11:45", color: "#fca5a5" }, // red
+  // Week 3
+  { day: 14, month, year, title: "Data Viz Lab", desc: "Tableau: maps & dashboards", startTime: "10:00", endTime: "12:00", color: "#c4b5fd" }, // violet
+  { day: 15, month, year, title: "Grant Check-in", desc: "PPOHA reporting touchpoint", startTime: "14:00", endTime: "14:45", color: "#f9a8d4" }, // pink
+  // Week 4
+  { day: 22, month, year, title: "Statistics Tutoring", desc: "Regression refresher", startTime: "16:00", endTime: "17:00", color: "#fcd34d" }, // yellow
+  { day: 23, month, year, title: "Tech Maintenance", desc: "Server patches + backups", startTime: "09:30", endTime: "10:15", color: "#93c5fd" }, // blue
+  // Week 5 (if present)
+  { day: 28, month, year, title: "Finance Review", desc: "Midterm checkpoints", startTime: "12:30", endTime: "13:30", color: "#34d399" }, // emerald
+  { day: 30, month, year, title: "Thesis Sync", desc: "Analytics section scope", startTime: "15:30", endTime: "16:15", color: "#f87171" }  // rose
+];
+
+let currentDay = null; // make sure this exists since it's referenced when adding a note
 let scrollOffsets = Array(42).fill(0);
 let dragEvent = null;
 
@@ -86,43 +172,112 @@ function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }
 
+// 1. Helpers (place these ABOVE drawGrid, or anywhere before you use them)
+function ellipsize(ctx, text, maxWidth) {
+  if (!text) return "";
+  const ellipsis = "…";
+  if (ctx.measureText(text).width <= maxWidth) return text;
+
+  let lo = 0, hi = text.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    const candidate = text.slice(0, mid) + ellipsis;
+    if (ctx.measureText(candidate).width <= maxWidth) lo = mid;
+    else hi = mid - 1;
+  }
+  return text.slice(0, lo) + ellipsis;
+}
+
+function drawClippedText(ctx, text, x, y, w, h, textX, textY) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h); // clipping box
+  ctx.clip();
+  ctx.fillText(text, textX, textY);
+  ctx.restore();
+}
+
 function drawGrid() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.strokeStyle = '#ccc';
-  ctx.font = '16px sans-serif';
 
   const daysInMonth = getDaysInMonth(year, month);
   const startDay = new Date(year, month, 1).getDay();
   const monthName = new Date(year, month).toLocaleString('default', { month: 'long' });
 
+  // Header (month title)
   ctx.fillStyle = '#000';
   ctx.font = '20px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
   ctx.fillText(`${monthName} ${year}`, 20, 35);
 
   let dayCounter = 1;
+
   for (let j = 0; j < 6; j++) {
     for (let i = 0; i < cols; i++) {
       const x = i * cellWidth;
       const y = j * cellHeight + 50;
       const index = j * cols + i;
+
+      // day cell border
       ctx.strokeRect(x, y, cellWidth, cellHeight);
+
       if (index >= startDay && dayCounter <= daysInMonth) {
+        // day number
         ctx.fillStyle = '#000';
+        ctx.font = '16px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
         ctx.fillText(dayCounter, x + 5, y + 20);
-        const dayEvents = events.filter(e => e.day === dayCounter && e.month === month && e.year === year);
+
+        // ---- CLIP TO CELL (prevents any drawing from bleeding out) ----
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, cellWidth, cellHeight);
+        ctx.clip();
+
+        const dayEvents = events.filter(e =>
+          e.day === dayCounter && e.month === month && e.year === year
+        );
+
         dayEvents.slice(scrollOffsets[dayCounter - 1], 3).forEach((ev, k) => {
           const evY = y + 30 + k * 35;
+          const boxX = Math.floor(x + 5);
+          const boxY = Math.floor(evY);
+          const boxW = Math.floor(cellWidth - 10);
+          const boxH = 30;
+
+          // event box
           ctx.fillStyle = ev.color || '#ffcc00';
-          ctx.fillRect(x + 5, evY, cellWidth - 10, 30);
+          ctx.fillRect(boxX, boxY, boxW, boxH);
+
+          // label text (time + title), clipped to the event box
           ctx.fillStyle = '#000';
-          ctx.fillText(ev.title, x + 10, evY + 20);
-          ev._x = x + 5; ev._y = evY; ev._w = cellWidth - 10; ev._h = 30;
+          ctx.font = '14px sans-serif';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+
+          const pad = 6;
+          const maxTextWidth = Math.max(0, boxW - pad * 2);
+          const label = `${ev.startTime ? ev.startTime + ' ' : ''}${ev.title ?? ''}`;
+          const text = ellipsize(ctx, label, maxTextWidth);
+
+          drawClippedText(ctx, text, boxX, boxY, boxW, boxH, boxX + pad, boxY + boxH / 2);
+
+          // hit-test rect for dragging
+          ev._x = boxX; ev._y = boxY; ev._w = boxW; ev._h = boxH;
         });
+
+        ctx.restore(); // end cell clip
+
         dayCounter++;
       }
     }
   }
 }
+
+
 
 canvas.addEventListener('click', (e) => {
   if (dragEvent) return;
@@ -274,6 +429,8 @@ function enablePopupDragging(popupId) {
 }
 
 drawGrid();
+
+	
 </script>
 </body>
 </html>
