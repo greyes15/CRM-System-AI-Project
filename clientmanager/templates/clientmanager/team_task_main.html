@@ -922,6 +922,237 @@
 
         // Initialize the application when DOM is loaded
         document.addEventListener('DOMContentLoaded', initializeApp);
+		
+		/* Check for task solution*/
+		// Simple function to check if at least 3 members with "Data" in their role have been selected
+		function checkDataTeamSelection() {
+			// Count members with "Data" in their role title that are currently selected
+			const dataMembers = selectedMembers.filter(member => 
+				member.role.toLowerCase().includes('data')
+			);
+			
+			// Check if we have at least 3 data members
+			if (dataMembers.length >= 3) {
+				showTaskCompleteModal();
+				return true;
+			}
+			
+			return false;
+		}
+
+		// Function to create and show prominent task completion modal
+		function showTaskCompleteModal() {
+			// Create modal overlay
+			const modalOverlay = document.createElement('div');
+			modalOverlay.id = 'taskCompleteModal';
+			modalOverlay.innerHTML = `
+				<div class="modal-overlay">
+					<div class="modal-content">
+						<div class="task-complete-icon">✓</div>
+						<h2>Task 1 Complete</h2>
+						<p class="task-code">ACDSGWERFS</p>
+						<p class="task-description">Successfully assigned 3 data professionals to Case C-1024</p>
+						<button class="acknowledge-btn" onclick="acknowledgeTaskComplete()">Acknowledge</button>
+					</div>
+				</div>
+			`;
+			
+			document.body.appendChild(modalOverlay);
+			
+			// Disable interaction with background
+			document.body.style.overflow = 'hidden';
+			
+			// Add event listener to prevent closing by clicking outside
+			modalOverlay.addEventListener('click', function(e) {
+				if (e.target === modalOverlay) {
+					// Don't allow closing by clicking outside - must acknowledge
+					modalOverlay.querySelector('.modal-content').style.animation = 'shake 0.5s';
+					setTimeout(() => {
+						modalOverlay.querySelector('.modal-content').style.animation = '';
+					}, 500);
+				}
+			});
+		}
+
+		// Function to acknowledge and close the modal
+		function acknowledgeTaskComplete() {
+			const modal = document.getElementById('taskCompleteModal');
+			if (modal) {
+				modal.remove();
+				document.body.style.overflow = 'auto';
+				
+				// Show a brief confirmation in the regular message area
+				showMessage('Task acknowledgment received. Well done!', 'success');
+			}
+		}
+
+		// Add CSS styles for the prominent modal
+		const taskCompleteModalStyle = `
+		.modal-overlay {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0, 0, 0, 0.8);
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			z-index: 10000;
+			animation: fadeIn 0.3s ease;
+		}
+
+		.modal-content {
+			background: linear-gradient(135deg, #28a745, #20c997);
+			color: white;
+			padding: 40px;
+			border-radius: 20px;
+			text-align: center;
+			box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+			max-width: 500px;
+			width: 90%;
+			animation: slideIn 0.4s ease;
+			position: relative;
+		}
+
+		.task-complete-icon {
+			font-size: 4rem;
+			margin-bottom: 20px;
+			background: rgba(255, 255, 255, 0.2);
+			width: 100px;
+			height: 100px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin: 0 auto 20px auto;
+			animation: pulse 2s infinite;
+		}
+
+		.modal-content h2 {
+			font-size: 2.5rem;
+			margin-bottom: 15px;
+			font-weight: bold;
+		}
+
+		.task-code {
+			font-size: 1.5rem;
+			font-weight: bold;
+			background: rgba(255, 255, 255, 0.2);
+			padding: 10px 20px;
+			border-radius: 10px;
+			margin: 20px 0;
+			letter-spacing: 2px;
+		}
+
+		.task-description {
+			font-size: 1.1rem;
+			margin-bottom: 30px;
+			opacity: 0.9;
+		}
+
+		.acknowledge-btn {
+			background: white;
+			color: #28a745;
+			border: none;
+			padding: 15px 40px;
+			font-size: 1.2rem;
+			font-weight: bold;
+			border-radius: 10px;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+		}
+
+		.acknowledge-btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+		}
+
+		.acknowledge-btn:active {
+			transform: translateY(0);
+		}
+
+		@keyframes fadeIn {
+			from { opacity: 0; }
+			to { opacity: 1; }
+		}
+
+		@keyframes slideIn {
+			from { 
+				opacity: 0;
+				transform: translateY(-50px) scale(0.9);
+			}
+			to { 
+				opacity: 1;
+				transform: translateY(0) scale(1);
+			}
+		}
+
+		@keyframes pulse {
+			0%, 100% { transform: scale(1); }
+			50% { transform: scale(1.1); }
+		}
+
+		@keyframes shake {
+			0%, 100% { transform: translateX(0); }
+			25% { transform: translateX(-10px); }
+			75% { transform: translateX(10px); }
+		}
+
+		/* Ensure modal appears above everything */
+		#taskCompleteModal {
+			z-index: 10000 !important;
+		}
+		`;
+
+		// Inject the CSS
+		const styleSheet = document.createElement("style");
+		styleSheet.textContent = taskCompleteModalStyle;
+		document.head.appendChild(styleSheet);
+
+		// Modified assignment handler to include the data team check
+		function handleAssignment() {
+			if (!selectedMember) {
+				showMessage('Please select a team member first.', 'error');
+				return;
+			}
+
+			if (selectedMember.availability !== 'Available') {
+				showMessage('Selected team member is not available.', 'error');
+				return;
+			}
+
+			// Update member availability
+			selectedMember.availability = 'Busy';
+			
+			// Update the original array
+			const originalMember = teamMembers.find(m => m.id === selectedMember.id);
+			if (originalMember) {
+				originalMember.availability = 'Busy';
+			}
+
+			// Add to selected members array (if not already tracking multiple selections)
+			if (!window.selectedMembers) {
+				window.selectedMembers = [];
+			}
+			window.selectedMembers.push(selectedMember);
+
+			// Check if data team task is complete
+			const taskComplete = checkDataTeamSelection();
+			
+			if (!taskComplete) {
+				// Show normal success message
+				showMessage(`Successfully assigned ${selectedMember.name} to Case ${caseDetails.id}`, 'success');
+			}
+
+			// Reset selection
+			selectedMember = null;
+			updateAssignButton();
+
+			// Refresh the display
+			handleFilter();
+		}
     </script>
 </body>
 </html>

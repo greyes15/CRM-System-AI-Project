@@ -131,151 +131,151 @@
 		sendEvent("pageview", "DOCUMENT", "", window.location.pathname, false);
 	  });
 	})();
-	
-const canvas = document.getElementById('calendarCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+		
+	const canvas = document.getElementById('calendarCanvas');
+	const ctx = canvas.getContext('2d');
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
 
-let date = new Date();
-let year = date.getFullYear();
-let month = date.getMonth();
-const cols = 7;
-const cellWidth = canvas.width / cols;
-const cellHeight = (canvas.height - 50) / 6;
+	let date = new Date();
+	let year = date.getFullYear();
+	let month = date.getMonth();
+	const cols = 7;
+	const cellWidth = canvas.width / cols;
+	const cellHeight = (canvas.height - 50) / 6;
 
-// Prepopulated sample events for the CURRENT month/year
-// Times are "HH:MM" so the conflict check (string compare) still works.
-let events = [
-  // Week 1
-  { day: 2,  month, year, title: "Grad Orientation", desc: "Welcome session + Q&A", startTime: "09:00", endTime: "10:30", color: "#7dd3fc" }, // sky blue
-  { day: 3,  month, year, title: "Faculty Meeting", desc: "Agenda: fall initiatives", startTime: "13:00", endTime: "14:00", color: "#fde68a" }, // amber
-  // Week 2
-  { day: 7,  month, year, title: "Writing Workshop", desc: "APA style & citations", startTime: "15:00", endTime: "16:30", color: "#86efac" }, // green
-  { day: 8,  month, year, title: "One-on-One Coaching", desc: "Student success planning", startTime: "11:00", endTime: "11:45", color: "#fca5a5" }, // red
-  // Week 3
-  { day: 14, month, year, title: "Data Viz Lab", desc: "Tableau: maps & dashboards", startTime: "10:00", endTime: "12:00", color: "#c4b5fd" }, // violet
-  { day: 15, month, year, title: "Grant Check-in", desc: "PPOHA reporting touchpoint", startTime: "14:00", endTime: "14:45", color: "#f9a8d4" }, // pink
-  // Week 4
-  { day: 22, month, year, title: "Statistics Tutoring", desc: "Regression refresher", startTime: "16:00", endTime: "17:00", color: "#fcd34d" }, // yellow
-  { day: 23, month, year, title: "Tech Maintenance", desc: "Server patches + backups", startTime: "09:30", endTime: "10:15", color: "#93c5fd" }, // blue
-  // Week 5 (if present)
-  { day: 28, month, year, title: "Finance Review", desc: "Midterm checkpoints", startTime: "12:30", endTime: "13:30", color: "#34d399" }, // emerald
-  { day: 30, month, year, title: "Thesis Sync", desc: "Analytics section scope", startTime: "15:30", endTime: "16:15", color: "#f87171" }  // rose
-];
+	// Prepopulated sample events for the CURRENT month/year
+	// Times are "HH:MM" so the conflict check (string compare) still works.
+	let events = [
+	  // Week 1
+	  { day: 2,  month, year, title: "Grad Orientation", desc: "Welcome session + Q&A", startTime: "09:00", endTime: "10:30", color: "#7dd3fc" }, // sky blue
+	  { day: 3,  month, year, title: "Faculty Meeting", desc: "Agenda: fall initiatives", startTime: "13:00", endTime: "14:00", color: "#fde68a" }, // amber
+	  // Week 2
+	  { day: 7,  month, year, title: "Writing Workshop", desc: "APA style & citations", startTime: "15:00", endTime: "16:30", color: "#86efac" }, // green
+	  { day: 8,  month, year, title: "One-on-One Coaching", desc: "Student success planning", startTime: "11:00", endTime: "11:45", color: "#fca5a5" }, // red
+	  // Week 3
+	  { day: 14, month, year, title: "Data Viz Lab", desc: "Tableau: maps & dashboards", startTime: "10:00", endTime: "12:00", color: "#c4b5fd" }, // violet
+	  { day: 15, month, year, title: "Grant Check-in", desc: "PPOHA reporting touchpoint", startTime: "14:00", endTime: "14:45", color: "#f9a8d4" }, // pink
+	  // Week 4
+	  { day: 22, month, year, title: "Statistics Tutoring", desc: "Regression refresher", startTime: "16:00", endTime: "17:00", color: "#fcd34d" }, // yellow
+	  { day: 23, month, year, title: "Tech Maintenance", desc: "Server patches + backups", startTime: "09:30", endTime: "10:15", color: "#93c5fd" }, // blue
+	  // Week 5 (if present)
+	  { day: 28, month, year, title: "Finance Review", desc: "Midterm checkpoints", startTime: "12:30", endTime: "13:30", color: "#34d399" }, // emerald
+	  { day: 30, month, year, title: "Thesis Sync", desc: "Analytics section scope", startTime: "15:30", endTime: "16:15", color: "#f87171" }  // rose
+	];
 
-let currentDay = null; // make sure this exists since it's referenced when adding a note
-let scrollOffsets = Array(42).fill(0);
-let dragEvent = null;
+	let currentDay = null; // make sure this exists since it's referenced when adding a note
+	let scrollOffsets = Array(42).fill(0);
+	let dragEvent = null;
 
-function getDaysInMonth(year, month) {
-  return new Date(year, month + 1, 0).getDate();
-}
+	function getDaysInMonth(year, month) {
+	  return new Date(year, month + 1, 0).getDate();
+	}
 
-// 1. Helpers (place these ABOVE drawGrid, or anywhere before you use them)
-function ellipsize(ctx, text, maxWidth) {
-  if (!text) return "";
-  const ellipsis = "…";
-  if (ctx.measureText(text).width <= maxWidth) return text;
+	// 1. Helpers (place these ABOVE drawGrid, or anywhere before you use them)
+	function ellipsize(ctx, text, maxWidth) {
+	  if (!text) return "";
+	  const ellipsis = "…";
+	  if (ctx.measureText(text).width <= maxWidth) return text;
 
-  let lo = 0, hi = text.length;
-  while (lo < hi) {
-    const mid = Math.ceil((lo + hi) / 2);
-    const candidate = text.slice(0, mid) + ellipsis;
-    if (ctx.measureText(candidate).width <= maxWidth) lo = mid;
-    else hi = mid - 1;
-  }
-  return text.slice(0, lo) + ellipsis;
-}
+	  let lo = 0, hi = text.length;
+	  while (lo < hi) {
+		const mid = Math.ceil((lo + hi) / 2);
+		const candidate = text.slice(0, mid) + ellipsis;
+		if (ctx.measureText(candidate).width <= maxWidth) lo = mid;
+		else hi = mid - 1;
+	  }
+	  return text.slice(0, lo) + ellipsis;
+	}
 
-function drawClippedText(ctx, text, x, y, w, h, textX, textY) {
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(x, y, w, h); // clipping box
-  ctx.clip();
-  ctx.fillText(text, textX, textY);
-  ctx.restore();
-}
+	function drawClippedText(ctx, text, x, y, w, h, textX, textY) {
+	  ctx.save();
+	  ctx.beginPath();
+	  ctx.rect(x, y, w, h); // clipping box
+	  ctx.clip();
+	  ctx.fillText(text, textX, textY);
+	  ctx.restore();
+	}
 
-function drawGrid() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = '#ccc';
+	function drawGrid() {
+	  ctx.clearRect(0, 0, canvas.width, canvas.height);
+	  ctx.strokeStyle = '#ccc';
 
-  const daysInMonth = getDaysInMonth(year, month);
-  const startDay = new Date(year, month, 1).getDay();
-  const monthName = new Date(year, month).toLocaleString('default', { month: 'long' });
+	  const daysInMonth = getDaysInMonth(year, month);
+	  const startDay = new Date(year, month, 1).getDay();
+	  const monthName = new Date(year, month).toLocaleString('default', { month: 'long' });
 
-  // Header (month title)
-  ctx.fillStyle = '#000';
-  ctx.font = '20px sans-serif';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillText(`${monthName} ${year}`, 20, 35);
+	  // Header (month title)
+	  ctx.fillStyle = '#000';
+	  ctx.font = '20px sans-serif';
+	  ctx.textAlign = 'left';
+	  ctx.textBaseline = 'alphabetic';
+	  ctx.fillText(`${monthName} ${year}`, 20, 35);
 
-  let dayCounter = 1;
+	  let dayCounter = 1;
 
-  for (let j = 0; j < 6; j++) {
-    for (let i = 0; i < cols; i++) {
-      const x = i * cellWidth;
-      const y = j * cellHeight + 50;
-      const index = j * cols + i;
+	  for (let j = 0; j < 6; j++) {
+		for (let i = 0; i < cols; i++) {
+		  const x = i * cellWidth;
+		  const y = j * cellHeight + 50;
+		  const index = j * cols + i;
 
-      // day cell border
-      ctx.strokeRect(x, y, cellWidth, cellHeight);
+		  // day cell border
+		  ctx.strokeRect(x, y, cellWidth, cellHeight);
 
-      if (index >= startDay && dayCounter <= daysInMonth) {
-        // day number
-        ctx.fillStyle = '#000';
-        ctx.font = '16px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic';
-        ctx.fillText(dayCounter, x + 5, y + 20);
+		  if (index >= startDay && dayCounter <= daysInMonth) {
+			// day number
+			ctx.fillStyle = '#000';
+			ctx.font = '16px sans-serif';
+			ctx.textAlign = 'left';
+			ctx.textBaseline = 'alphabetic';
+			ctx.fillText(dayCounter, x + 5, y + 20);
 
-        // ---- CLIP TO CELL (prevents any drawing from bleeding out) ----
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(x, y, cellWidth, cellHeight);
-        ctx.clip();
+			// ---- CLIP TO CELL (prevents any drawing from bleeding out) ----
+			ctx.save();
+			ctx.beginPath();
+			ctx.rect(x, y, cellWidth, cellHeight);
+			ctx.clip();
 
-        const dayEvents = events.filter(e =>
-          e.day === dayCounter && e.month === month && e.year === year
-        );
+			const dayEvents = events.filter(e =>
+			  e.day === dayCounter && e.month === month && e.year === year
+			);
 
-        dayEvents.slice(scrollOffsets[dayCounter - 1], 3).forEach((ev, k) => {
-          const evY = y + 30 + k * 35;
-          const boxX = Math.floor(x + 5);
-          const boxY = Math.floor(evY);
-          const boxW = Math.floor(cellWidth - 10);
-          const boxH = 30;
+			dayEvents.slice(scrollOffsets[dayCounter - 1], 3).forEach((ev, k) => {
+			  const evY = y + 30 + k * 35;
+			  const boxX = Math.floor(x + 5);
+			  const boxY = Math.floor(evY);
+			  const boxW = Math.floor(cellWidth - 10);
+			  const boxH = 30;
 
-          // event box
-          ctx.fillStyle = ev.color || '#ffcc00';
-          ctx.fillRect(boxX, boxY, boxW, boxH);
+			  // event box
+			  ctx.fillStyle = ev.color || '#ffcc00';
+			  ctx.fillRect(boxX, boxY, boxW, boxH);
 
-          // label text (time + title), clipped to the event box
-          ctx.fillStyle = '#000';
-          ctx.font = '14px sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
+			  // label text (time + title), clipped to the event box
+			  ctx.fillStyle = '#000';
+			  ctx.font = '14px sans-serif';
+			  ctx.textAlign = 'left';
+			  ctx.textBaseline = 'middle';
 
-          const pad = 6;
-          const maxTextWidth = Math.max(0, boxW - pad * 2);
-          const label = `${ev.startTime ? ev.startTime + ' ' : ''}${ev.title ?? ''}`;
-          const text = ellipsize(ctx, label, maxTextWidth);
+			  const pad = 6;
+			  const maxTextWidth = Math.max(0, boxW - pad * 2);
+			  const label = `${ev.startTime ? ev.startTime + ' ' : ''}${ev.title ?? ''}`;
+			  const text = ellipsize(ctx, label, maxTextWidth);
 
-          drawClippedText(ctx, text, boxX, boxY, boxW, boxH, boxX + pad, boxY + boxH / 2);
+			  drawClippedText(ctx, text, boxX, boxY, boxW, boxH, boxX + pad, boxY + boxH / 2);
 
-          // hit-test rect for dragging
-          ev._x = boxX; ev._y = boxY; ev._w = boxW; ev._h = boxH;
-        });
+			  // hit-test rect for dragging
+			  ev._x = boxX; ev._y = boxY; ev._w = boxW; ev._h = boxH;
+			});
 
-        ctx.restore(); // end cell clip
+			ctx.restore(); // end cell clip
 
-        dayCounter++;
-      }
-    }
-  }
-}
+			dayCounter++;
+		  }
+		}
+	  }
+	}
 
 
 
@@ -326,6 +326,66 @@ canvas.addEventListener('dblclick', (e) => {
     enablePopupDragging('dayPopup');
   }
 });
+
+// Fix for the calendar delete and color issues
+// Replace the double-click event listener with this corrected version:
+
+canvas.addEventListener('dblclick', (e) => {
+  const x = e.offsetX;
+  const y = e.offsetY - 50;
+  if (y < 0) return;
+  const col = Math.floor(x / cellWidth);
+  const row = Math.floor(y / cellHeight);
+  const startDay = new Date(year, month, 1).getDay();
+  const index = row * cols + col;
+  const day = index - startDay + 1;
+  const daysInMonth = getDaysInMonth(year, month);
+  if (day >= 1 && day <= daysInMonth) {
+    const popup = document.getElementById('dayPopup');
+    popup.innerHTML = `<div class='popup-header' id='dayPopupHeader'>Events for ${day} <span class='close-btn' onclick='closePopup("dayPopup")'>✖</span></div>`;
+    
+    // Get events for this specific day
+    const dayEvents = events.filter(ev => ev.day === day && ev.month === month && ev.year === year);
+    
+    dayEvents.forEach((ev, loopIndex) => {
+      // Find the ACTUAL index in the main events array
+      const actualIndex = events.findIndex(event => event === ev);
+      
+      const container = document.createElement('div');
+      container.className = 'popup-event';
+      container.innerHTML = `
+        <strong>${ev.title}</strong><br>
+        Time: ${ev.startTime} - ${ev.endTime}<br>
+        <small>${ev.desc || ''}</small><br>
+        <input type="color" value="${ev.color}" onchange="updateColor(${actualIndex}, this.value)" />
+        <button onclick="deleteEvent(${actualIndex})">Delete</button>
+      `;
+      popup.appendChild(container);
+    });
+    
+    popup.style.left = '150px';
+    popup.style.top = '150px';
+    popup.style.display = 'block';
+    enablePopupDragging('dayPopup');
+  }
+});
+
+// Also fix the delete and update functions to be more robust:
+
+function deleteEvent(index) {
+  if (index >= 0 && index < events.length) {
+    events.splice(index, 1);
+    drawGrid();
+    closePopup('dayPopup');
+  }
+}
+
+function updateColor(index, color) {
+  if (index >= 0 && index < events.length) {
+    events[index].color = color;
+    drawGrid();
+  }
+}
 
 canvas.addEventListener('mousedown', (e) => {
   const x = e.offsetX;
@@ -428,8 +488,103 @@ function enablePopupDragging(popupId) {
   };
 }
 
-drawGrid();
+// Clean Task 2 addition - remove the initial color picker and only allow color changes on double-click
 
+// Add the conflicting event
+events.push({
+  day: 14, 
+  month, 
+  year, 
+  title: "Client Review Call", 
+  desc: "Quarterly client feedback session", 
+  startTime: "14:00", 
+  endTime: "15:00", 
+  color: "#ff6b6b"
+});
+
+// Override the existing confirmSaveNote function to check for Task 2 completion
+const originalConfirmSaveNote = confirmSaveNote;
+confirmSaveNote = function(proceed) {
+  if (proceed) {
+    const title = document.getElementById('noteTitle').value;
+    const desc = document.getElementById('noteDesc').value;
+    const startTime = document.getElementById('noteStartTime').value;
+    const endTime = document.getElementById('noteEndTime').value;
+    
+    // For Task 2, we need to check if they set the color correctly via double-click after creation
+    // Initial creation uses default color, then user must change it to the correct RGB via double-click
+    const color = '#ffcc00'; // Default color for initial creation
+    
+    events.push({ day: currentDay, month, year, title, desc, startTime, endTime, color });
+    closeEditor();
+    drawGrid();
+    
+    // Check if this was the Task 2 event (but without color requirement yet)
+    const isTask2EventBase = title === "Project Status Meeting" && 
+                            desc === "Bi-weekly meeting to review current project milestones and address blockers" &&
+                            startTime === "14:30" && 
+                            endTime === "15:15" &&
+                            currentDay === 14;
+    
+    if (isTask2EventBase) {
+      console.log("Task 2 event created! Now change the color to RGB(120,180,200) by double-clicking the event.");
+    }
+  }
+  closePopup('confirmPopup');
+};
+
+// Override updateColor to check for Task 2 completion when color is changed
+const originalUpdateColor = updateColor;
+updateColor = function(index, color) {
+  if (index >= 0 && index < events.length) {
+    events[index].color = color;
+    drawGrid();
+    
+    // Check if this completes Task 2
+    const event = events[index];
+    const isTask2Complete = event.title === "Project Status Meeting" && 
+                           event.desc === "Bi-weekly meeting to review current project milestones and address blockers" &&
+                           event.startTime === "14:30" && 
+                           event.endTime === "15:15" &&
+                           event.day === 14 &&
+                           color === "#78b4c8"; // RGB(120,180,200) = #78b4c8
+    
+    if (event.day === 14 && event.title === "Project Status Meeting") {
+      console.log("Task 2 Check:");
+      console.log("Title match:", event.title === "Project Status Meeting");
+      console.log("Desc match:", event.desc === "Bi-weekly meeting to review current project milestones and address blockers");
+      console.log("Start time match:", event.startTime === "14:30");
+      console.log("End time match:", event.endTime === "15:15");
+      console.log("Day match:", event.day === 14);
+      console.log("Color match:", color === "#78b4c8", "| Entered:", color, "| Required: #78b4c8");
+      console.log("All requirements met:", isTask2Complete);
+    }
+    
+    if (isTask2Complete) {
+      showTask2Complete();
+    }
+  }
+};
+
+// Task 2 completion modal
+function showTask2Complete() {
+  const modal = document.createElement('div');
+  modal.innerHTML = `
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; justify-content: center; align-items: center;">
+      <div style="background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 500px;">
+        <div style="font-size: 4rem; margin-bottom: 20px;">📅</div>
+        <h2 style="font-size: 2.5rem; margin-bottom: 15px;">Task 2 Complete</h2>
+        <p style="font-size: 1.5rem; background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 10px; margin: 20px 0; letter-spacing: 2px;">BXYPLMNQR</p>
+        <p style="margin-bottom: 30px;">Successfully scheduled "Project Status Meeting" and resolved scheduling conflict</p>
+        <button onclick="this.closest('div').parentElement.remove()" style="background: white; color: #28a745; border: none; padding: 15px 40px; font-size: 1.2rem; font-weight: bold; border-radius: 10px; cursor: pointer;">Acknowledge</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// Redraw to show the new conflicting event
+drawGrid();
 	
 </script>
 </body>

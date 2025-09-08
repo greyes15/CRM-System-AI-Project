@@ -30,4 +30,5 @@ urlpatterns = [
     path("employee-user-manual/", views.employee_user_manual, name="manual"),
     path("api/rag_refresh/", views.rag_refresh, name="rag_refresh"),
     path('test-rag/', views.test_rag, name='test_rag'),
+    path("manual-viewer/", views.manual_viewer, name="manual_viewer"),
 ]

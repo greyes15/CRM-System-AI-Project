@@ -109,37 +109,116 @@ def _latest_user_text(messages):
 @csrf_exempt
 @require_POST
 def chat_proxy(request):
+    """Handle chat requests with simple message tracking using cookies like track_event."""
     try:
-        payload  = json.loads(request.body)
+        # Parse request
+        payload = json.loads(request.body)
         messages = payload.get("messages", [])
-
-        user_q = _latest_user_text(messages)
-        hits = retrieve_top_k(user_q, k=RAG_TOP_K) if user_q else []
-
-        if hits:
-            # Filter very weak matches; ensure at least some context remains
-            good = [h for h in hits if h["score"] >= RAG_MIN_SCORE] or hits[:3]
-
-            # Build a compact context block with page cites
-            lines = []
-            for i, h in enumerate(good, start=1):
-                lines.append(f"{i}) (p. {h['page']}) {h['text']}")
-            ctx = f"{RAG_PREAMBLE}\n\nExcerpts:\n" + "\n\n".join(lines)
-
-            # Prepend as a system message
-            messages = [{"role": "system", "content": ctx}] + messages
-        else:
-            # Hard fallback: ask model to be honest about missing context
-            messages = [{"role": "system", "content": "No manual excerpts available; do not guess."}] + messages
-
+        
+        # Get username using same logic as track_event: payload > cookie > auth user > 'guest'
+        username = (
+            (payload.get("username") or "").strip()
+            or (request.COOKIES.get("username") or "").strip()
+            or (request.user.username if request.user.is_authenticated else "")
+            or "guest"
+        )[:150]
+        
+        # Ensure we have a User to satisfy the FK (same as track_event)
+        user_obj, created = User.objects.get_or_create(
+            username=username,
+            defaults={"email": f"{username}@research.invalid"}
+        )
+        if created:
+            user_obj.set_unusable_password()
+            user_obj.save(update_fields=["password"])
+        
+        # Get latest user message
+        user_query = ""
+        for msg in reversed(messages):
+            if msg.get("role") == "user":
+                user_query = msg.get("content", "").strip()
+                break
+        
+        # Save user message (same pattern as track_event)
+        if user_query:
+            ChatMessage.objects.create(
+                user=user_obj,
+                username=username,
+                ip_address=get_client_ip(request),
+                page=payload.get("page", "AIChatBox"),
+                message_type="user",
+                content=user_query
+            )
+        
+        # Do RAG retrieval if we have a query
+        context_message = None
+        if user_query:
+            try:
+                from .rag_engine import retrieve_top_k
+                chunks = retrieve_top_k(user_query, k=5)
+                
+                if chunks:
+                    good_chunks = [c for c in chunks if c["score"] > 0.3]
+                    if not good_chunks:
+                        good_chunks = chunks[:3]
+                    
+                    context_parts = [
+                        "Answer based on the Employee Manual excerpts below. Cite page numbers when possible.",
+                        "If the excerpts don't contain enough information, say so clearly.",
+                        "",
+                        "Relevant excerpts:"
+                    ]
+                    
+                    for i, chunk in enumerate(good_chunks, 1):
+                        context_parts.append(f"{i}. (Page {chunk['page']}) {chunk['text']}")
+                    
+                    context_message = {
+                        "role": "system", 
+                        "content": "\n".join(context_parts)
+                    }
+                
+            except Exception as rag_error:
+                logger.error(f"RAG error: {rag_error}")
+        
+        # Build messages for OpenAI
+        final_messages = []
+        if context_message:
+            final_messages.append(context_message)
+        final_messages.extend(messages)
+        
+        # Call OpenAI
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=messages,
+            messages=final_messages,
+            temperature=0.7,
+            max_tokens=500
         )
+        
+        # Get AI response
+        ai_response = completion.choices[0].message.content
+        
+        # Save AI response (same pattern as track_event)
+        ChatMessage.objects.create(
+            user=user_obj,
+            username=username,
+            ip_address=get_client_ip(request),
+            page=payload.get("page", "AIChatBox"),
+            message_type="assistant",
+            content=ai_response
+        )
+        
         return JsonResponse(completion.model_dump(), safe=False)
-
-    except Exception as exc:
-        return JsonResponse({"error": str(exc)}, status=500)
+        
+    except Exception as e:
+        logger.error(f"Chat proxy error: {e}")
+        return JsonResponse({
+            "choices": [{
+                "message": {
+                    "role": "assistant",
+                    "content": "I'm having trouble processing your request. Please try again."
+                }
+            }]
+        }, status=500)
 
 @require_GET
 def rag_refresh(request):
@@ -405,3 +484,12 @@ def employee_user_manual(request):
     The template will reference the PDF via {% static %}.
     """
     return render(request, "clientmanager/employee_user_manual.html")
+    
+# clientmanager/views.py
+from django.shortcuts import render
+
+def manual_viewer(request):
+    """
+    Renders the PDF.js viewer template. The PDF URL is passed as ?file=/static/...
+    """
+    return render(request, "clientmanager/pdf_viewer.html")

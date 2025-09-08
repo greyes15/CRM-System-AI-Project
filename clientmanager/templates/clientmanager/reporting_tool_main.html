@@ -1159,6 +1159,306 @@
                 console.error('Failed to copy: ', err);
             });
         }
+
+	// Task 3: Employee Report with Specific Selection Requirements
+	// Add this to the existing employee analytics code
+
+	// Track task requirements (simplified)
+	let task3Requirements = {
+		reportType: false,
+		temporalPeriod: false,
+		organizationalUnit: false,
+		exportFormat: false,
+		complexity: false,
+		allFieldsSelected: false
+	};
+
+	// Override the form selection handlers to check Task 3 requirements
+	function checkTask3Requirements() {
+		const reportType = document.getElementById('reportType').value;
+		const dateRange = document.getElementById('dateRange').value; 
+		const departmentFilter = document.getElementById('departmentFilter').value;
+		const exportFormat = document.getElementById('exportFormat').value;
+		const reportComplexity = document.getElementById('reportComplexity').value;
+		
+		// Update requirements tracking
+		task3Requirements.reportType = (reportType === "multi-dimensional-office-productivity-correlation-study");
+		task3Requirements.temporalPeriod = (dateRange === "annual");
+		task3Requirements.organizationalUnit = (departmentFilter === "all");
+		task3Requirements.exportFormat = (exportFormat === "csv-delimited");
+		task3Requirements.complexity = (reportComplexity === "detailed");
+		
+		// Log progress for debugging
+		console.log("Task 3 Progress Check:");
+		console.log("Report Type (Multi-Dimensional Office Productivity):", task3Requirements.reportType);
+		console.log("Temporal Period (Annual):", task3Requirements.temporalPeriod);
+		console.log("Organizational Unit (All Departments):", task3Requirements.organizationalUnit);
+		console.log("Export Format (CSV):", task3Requirements.exportFormat);
+		console.log("Complexity (Detailed):", task3Requirements.complexity);
+		console.log("All Fields Selected:", task3Requirements.allFieldsSelected);
+		console.log("Under 30 Selected:", task3Requirements.under30Selected);
+	}
+
+	// Override the original handlers to include Task 3 checking
+	const originalHandleReportSelection = handleReportSelection;
+	handleReportSelection = function() {
+		originalHandleReportSelection();
+		checkTask3Requirements();
+	};
+
+	const originalHandleExportSelection = handleExportSelection;
+	handleExportSelection = function() {
+		originalHandleExportSelection();
+		checkTask3Requirements();
+	};
+
+	const originalHandleComplexitySelection = handleComplexitySelection;
+	handleComplexitySelection = function() {
+		originalHandleComplexitySelection();
+		checkTask3Requirements();
+	};
+
+	// Add event listeners for other selects
+	document.addEventListener('DOMContentLoaded', function() {
+		document.getElementById('dateRange').addEventListener('change', checkTask3Requirements);
+		document.getElementById('departmentFilter').addEventListener('change', checkTask3Requirements);
+	});
+
+	// Check if all required data fields are selected
+	function checkAllFieldsSelected() {
+		const requiredFields = ['name', 'position', 'office', 'age', 'startDate', 'salary'];
+		const allSelected = requiredFields.every(field => selectedColumns.has(field));
+		task3Requirements.allFieldsSelected = allSelected;
+		
+		if (allSelected) {
+			console.log("✓ All required data fields selected");
+		} else {
+			const missing = requiredFields.filter(field => !selectedColumns.has(field));
+			console.log("✗ Missing required fields:", missing);
+		}
+		
+		return allSelected;
+	}
+
+	// Check if all employees under 30 are selected
+	function checkUnder30Selected() {
+		const under30Employees = [];
+		employeeData.forEach((employee, index) => {
+			if (employee.age < 30) {
+				under30Employees.push(index);
+			}
+		});
+		
+		const allUnder30Selected = under30Employees.every(index => selectedRows.has(index));
+		task3Requirements.under30Selected = allUnder30Selected;
+		
+		console.log("Employees under 30:", under30Employees.length);
+		console.log("Under 30 employees selected:", under30Employees.filter(index => selectedRows.has(index)).length);
+		console.log("All under 30 selected:", allUnder30Selected);
+		
+		// Show helpful message if not all under 30 are selected
+		if (!allUnder30Selected) {
+			const under30Names = under30Employees.map(index => employeeData[index].name);
+			const selectedUnder30Names = under30Employees
+				.filter(index => selectedRows.has(index))
+				.map(index => employeeData[index].name);
+			const missingUnder30 = under30Names.filter(name => !selectedUnder30Names.includes(name));
+			
+			if (missingUnder30.length > 0) {
+				console.log("Missing employees under 30:", missingUnder30);
+			}
+		}
+		
+		return allUnder30Selected;
+	}
+
+	// Override the showSelectedData function to include Task 3 validation
+	const originalShowSelectedData = showSelectedData;
+	showSelectedData = function() {
+		// Check field selection requirements
+		checkAllFieldsSelected();
+		checkUnder30Selected();
+		
+		// Call original function
+		originalShowSelectedData();
+		
+		// Check if Task 3 is complete
+		checkTask3Completion();
+	};
+
+	// Fix row selection by overriding the toggleRowSelection function
+	window.toggleRowSelection = function(row, index) {
+		const checkbox = row.querySelector('.row-checkbox');
+		
+		// Handle both direct checkbox clicks and row clicks
+		if (event && event.target === checkbox) {
+			// Direct checkbox click - use checkbox state
+			if (checkbox.checked) {
+				selectedRows.add(index);
+				row.classList.add('selected');
+			} else {
+				selectedRows.delete(index);
+				row.classList.remove('selected');
+			}
+		} else {
+			// Row click - toggle state
+			if (selectedRows.has(index)) {
+				selectedRows.delete(index);
+				row.classList.remove('selected');
+				checkbox.checked = false;
+			} else {
+				selectedRows.add(index);
+				row.classList.add('selected');
+				checkbox.checked = true;
+			}
+		}
+		
+		updateSelectAllCheckbox();
+		
+		// Check Task 3 requirements if data selector is visible
+		if (dataSelector && dataSelector.classList.contains('show')) {
+			setTimeout(() => {
+				checkUnder30Selected();
+			}, 50);
+		}
+	};
+
+	// Override the table initialization to fix the event handlers
+	const originalInitializeTable = initializeTable;
+	initializeTable = function() {
+		const tableBody = document.getElementById('tableBody');
+		if (!tableBody) return;
+		
+		tableBody.innerHTML = '';
+		
+		employeeData.forEach((employee, index) => {
+			const row = document.createElement('tr');
+			row.dataset.index = index;
+			
+			row.innerHTML = `
+				<td>
+					<input type="checkbox" class="row-checkbox" data-index="${index}">
+				</td>
+				<td>${employee.name}</td>
+				<td>${employee.position}</td>
+				<td>${employee.office}</td>
+				<td>${employee.age}</td>
+				<td>${employee.startDate}</td>
+				<td>${employee.salary}</td>
+			`;
+			
+			// Add click handler to row (not checkbox)
+			row.addEventListener('click', function(e) {
+				if (e.target.type !== 'checkbox') {
+					toggleRowSelection(row, index);
+				}
+			});
+			
+			// Add change handler to checkbox
+			const checkbox = row.querySelector('.row-checkbox');
+			checkbox.addEventListener('change', function() {
+				toggleRowSelection(row, index);
+			});
+			
+			tableBody.appendChild(row);
+		});
+		
+		updateColumnVisibility();
+	};
+
+	// Add helper function to select all employees under 30
+	function selectUnder30Employees() {
+		const under30Indices = [];
+		employeeData.forEach((employee, index) => {
+			if (employee.age < 30) {
+				under30Indices.push(index);
+			}
+		});
+		
+		under30Indices.forEach(index => {
+			selectedRows.add(index);
+			const row = document.querySelector(`tr[data-index="${index}"]`);
+			if (row) {
+				row.classList.add('selected');
+				row.querySelector('.row-checkbox').checked = true;
+			}
+		});
+		
+		updateSelectAllCheckbox();
+		
+		// Show helpful message
+		const under30Names = under30Indices.map(index => employeeData[index].name);
+		console.log(`Selected ${under30Indices.length} employees under 30:`, under30Names);
+		
+		alert(`Selected ${under30Indices.length} employees under 30:\n${under30Names.join(', ')}`);
+	}
+
+	// Check if Task 3 is complete
+	function checkTask3Completion() {
+		const formRequirementsMet = task3Requirements.reportType && 
+								   task3Requirements.temporalPeriod && 
+								   task3Requirements.organizationalUnit && 
+								   task3Requirements.exportFormat && 
+								   task3Requirements.complexity;
+		
+		const dataRequirementsMet = task3Requirements.allFieldsSelected && 
+								   task3Requirements.under30Selected;
+		
+		const allRequirementsMet = formRequirementsMet && dataRequirementsMet;
+		
+		console.log("Task 3 Completion Check:");
+		console.log("Form requirements met:", formRequirementsMet);
+		console.log("Data requirements met:", dataRequirementsMet);
+		console.log("All requirements met:", allRequirementsMet);
+		
+		if (allRequirementsMet) {
+			showTask3CompleteModal();
+		} else {
+			// Show what's still needed
+			const missing = [];
+			if (!formRequirementsMet) {
+				missing.push("Form selections (report type, date range, etc.)");
+			}
+			if (!task3Requirements.allFieldsSelected) {
+				missing.push("All data fields must be selected");
+			}
+			if (!task3Requirements.under30Selected) {
+				missing.push("All employees under 30 must be selected");
+			}
+			
+			if (missing.length > 0) {
+				console.log("Still needed for Task 3:", missing);
+			}
+		}
+	}
+
+	// Task 3 completion modal
+	function showTask3CompleteModal() {
+		const modal = document.createElement('div');
+		modal.innerHTML = `
+			<div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; justify-content: center; align-items: center;">
+				<div style="background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 500px;">
+					<div style="font-size: 4rem; margin-bottom: 20px;">📊</div>
+					<h2 style="font-size: 2.5rem; margin-bottom: 15px;">Task 3 Complete</h2>
+					<p style="font-size: 1.5rem; background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 10px; margin: 20px 0; letter-spacing: 2px;">CXYZMNOPR</p>
+					<p style="margin-bottom: 30px;">Successfully configured Multi-Dimensional Office Productivity report with all data fields and under-30 employee selection</p>
+					<button onclick="this.closest('div').parentElement.remove()" style="background: white; color: #28a745; border: none; padding: 15px 40px; font-size: 1.2rem; font-weight: bold; border-radius: 10px; cursor: pointer;">Acknowledge</button>
+				</div>
+			</div>
+		`;
+		document.body.appendChild(modal);
+	}
+
+	// Initialize Task 3 (removed helper button)
+	document.addEventListener('DOMContentLoaded', function() {
+		// Task 3 initialization without helper button
+		console.log("Task 3: Users must manually select employees under 30:");
+		console.log("- Caesar Vance (21)");
+		console.log("- Cedric Kelly (22)"); 
+		console.log("- Doris Wilder (23)");
+		console.log("- Donna Snider (27)");
+		console.log("- Brenden Wagner (28)");
+	});
     </script>
 </body>
 </html>
