@@ -148,20 +148,32 @@
 	// Times are "HH:MM" so the conflict check (string compare) still works.
 	let events = [
 	  // Week 1
-	  { day: 2,  month, year, title: "Grad Orientation", desc: "Welcome session + Q&A", startTime: "09:00", endTime: "10:30", color: "#7dd3fc" }, // sky blue
-	  { day: 3,  month, year, title: "Faculty Meeting", desc: "Agenda: fall initiatives", startTime: "13:00", endTime: "14:00", color: "#fde68a" }, // amber
+	  { day: 2,  month, year, title: "Leadership Onboarding", desc: "Welcome session & vision alignment with senior leadership", startTime: "09:00", endTime: "10:30", color: "#7dd3fc" }, // sky blue
+	  { day: 3,  month, year, title: "Leadership Strategy Meeting", desc: "Discuss service priorities, team goals, and leadership initiatives", startTime: "13:00", endTime: "14:00", color: "#fde68a" }, // amber
+	  { day: 4,  month, year, title: "Customer Journey Mapping Workshop", desc: "Identify touchpoints and service improvement opportunities", startTime: "15:00", endTime: "16:30", color: "#86efac" }, // green
+
 	  // Week 2
-	  { day: 7,  month, year, title: "Writing Workshop", desc: "APA style & citations", startTime: "15:00", endTime: "16:30", color: "#86efac" }, // green
-	  { day: 8,  month, year, title: "One-on-One Coaching", desc: "Student success planning", startTime: "11:00", endTime: "11:45", color: "#fca5a5" }, // red
+	  { day: 7,  month, year, title: "Professional Communication Workshop", desc: "Enhancing clarity, empathy, and service language in client interactions", startTime: "15:00", endTime: "16:30", color: "#86efac" }, // green
+	  { day: 8,  month, year, title: "Leadership Coaching Session", desc: "One-on-one goal setting and leadership skill development", startTime: "11:00", endTime: "11:45", color: "#fca5a5" }, // red
+	  { day: 9,  month, year, title: "Team Huddle: Service Excellence", desc: "Frontline staff alignment on service protocols and updates", startTime: "09:00", endTime: "09:30", color: "#fcd34d" }, // yellow
+	  { day: 10, month, year, title: "Client Feedback Deep Dive", desc: "Analyze client survey data and plan targeted improvements", startTime: "14:00", endTime: "15:00", color: "#c4b5fd" }, // violet
+
 	  // Week 3
-	  { day: 14, month, year, title: "Data Viz Lab", desc: "Tableau: maps & dashboards", startTime: "10:00", endTime: "12:00", color: "#c4b5fd" }, // violet
-	  { day: 15, month, year, title: "Grant Check-in", desc: "PPOHA reporting touchpoint", startTime: "14:00", endTime: "14:45", color: "#f9a8d4" }, // pink
+	  { day: 14, month, year, title: "Customer Insights Lab", desc: "Using data to improve client experience and service delivery", startTime: "10:00", endTime: "12:00", color: "#c4b5fd" }, // violet
+	  { day: 15, month, year, title: "Service Excellence Review", desc: "Progress check on service goals and customer feedback trends", startTime: "14:00", endTime: "14:45", color: "#f9a8d4" }, // pink
+	  { day: 16, month, year, title: "Conflict Resolution Training", desc: "Strategies for handling difficult customer interactions", startTime: "09:30", endTime: "11:00", color: "#f87171" }, // rose
+	  { day: 17, month, year, title: "Leadership Lunch & Learn", desc: "Peer sharing session on effective team management", startTime: "12:00", endTime: "13:00", color: "#34d399" }, // emerald
+
 	  // Week 4
-	  { day: 22, month, year, title: "Statistics Tutoring", desc: "Regression refresher", startTime: "16:00", endTime: "17:00", color: "#fcd34d" }, // yellow
-	  { day: 23, month, year, title: "Tech Maintenance", desc: "Server patches + backups", startTime: "09:30", endTime: "10:15", color: "#93c5fd" }, // blue
+	  { day: 21, month, year, title: "Customer Service Recognition", desc: "Celebrate staff delivering outstanding service", startTime: "11:00", endTime: "11:45", color: "#fde68a" }, // amber
+	  { day: 22, month, year, title: "Leadership Training Series", desc: "Decision-making and coaching techniques for frontline leaders", startTime: "16:00", endTime: "17:00", color: "#fcd34d" }, // yellow
+	  { day: 23, month, year, title: "Operations Huddle", desc: "System updates and support protocols to enhance service reliability", startTime: "09:30", endTime: "10:15", color: "#93c5fd" }, // blue
+	  { day: 24, month, year, title: "Customer Experience Brainstorm", desc: "Innovating new service approaches with cross-functional teams", startTime: "15:00", endTime: "16:30", color: "#86efac" }, // green
+
 	  // Week 5 (if present)
-	  { day: 28, month, year, title: "Finance Review", desc: "Midterm checkpoints", startTime: "12:30", endTime: "13:30", color: "#34d399" }, // emerald
-	  { day: 30, month, year, title: "Thesis Sync", desc: "Analytics section scope", startTime: "15:30", endTime: "16:15", color: "#f87171" }  // rose
+	  { day: 28, month, year, title: "Customer Satisfaction Review", desc: "Mid-quarter evaluation of client satisfaction and response metrics", startTime: "12:30", endTime: "13:30", color: "#34d399" }, // emerald
+	  { day: 29, month, year, title: "Leadership Roundtable", desc: "Collaborative planning session focused on elevating service standards", startTime: "15:30", endTime: "16:15", color: "#f87171" }, // rose
+	  { day: 30, month, year, title: "Client Success Forum", desc: "Highlight success stories and strategic partnerships", startTime: "10:00", endTime: "11:15", color: "#7dd3fc" } // sky blue
 	];
 
 	let currentDay = null; // make sure this exists since it's referenced when adding a note
