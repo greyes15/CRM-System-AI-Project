@@ -5,8 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Chat Box</title>
+
+    <!-- marked.js for markdown rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+
     <style>
-        /* Base body styling - centers the chat container on the page */
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f7f9;
@@ -15,23 +18,21 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh; /* Full viewport height */
+            height: 100vh;
         }
 
-        /* Main chat container - holds all chat elements */
         .chat-container {
             width: 500px;
             height: 700px;
             max-height: 700px;
             background-color: #fff;
             border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1); /* Subtle shadow for depth */
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
             display: flex;
-            flex-direction: column; /* Stack elements vertically */
-            overflow: hidden; /* Prevent content from spilling out */
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        /* Chat header - shows the agent name/title */
         .chat-header {
             background-color: #2e3a59;
             color: #fff;
@@ -40,48 +41,100 @@
             font-weight: bold;
         }
 
-        /* Warning notice about API key setup */
-        .api-key-notice {
-            background-color: #fff3cd; /* Light yellow background */
-            color: #856404; /* Dark yellow text */
-            padding: 8px 15px;
-            font-size: 12px;
-            border-bottom: 1px solid #ffeaa7;
-            text-align: center;
-        }
-
-        /* Main chat area where messages appear */
         .chat-body {
-            flex: 1; /* Takes up remaining space */
+            flex: 1;
             padding: 15px;
-            overflow-y: auto; /* Scrollable when messages overflow */
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 10px; /* Space between messages */
+            gap: 10px;
         }
 
-        /* Base styling for all messages */
         .message {
-            max-width: 75%; /* Prevents messages from being too wide */
+            max-width: 75%;
             padding: 10px 14px;
-            border-radius: 20px; /* Rounded message bubbles */
+            border-radius: 20px;
             font-size: 14px;
-            line-height: 1.4;
+            line-height: 1.5;
         }
 
-        /* User message styling - appears on the right */
         .user {
-            align-self: flex-end; /* Positions to the right */
-            background-color: #daf0ff; /* Light blue background */
+            align-self: flex-end;
+            background-color: #daf0ff;
         }
 
-        /* Agent message styling - appears on the left */
         .agent {
-            align-self: flex-start; /* Positions to the left */
-            background-color: #eeeeee; /* Light gray background */
+            align-self: flex-start;
+            background-color: #eeeeee;
         }
 
-        /* Typing indicator when agent is responding */
+        /* ── Markdown styles inside agent bubbles ── */
+        .agent p {
+            margin: 0 0 8px 0;
+        }
+        .agent p:last-child {
+            margin-bottom: 0;
+        }
+        .agent strong {
+            font-weight: bold;
+        }
+        .agent em {
+            font-style: italic;
+        }
+        .agent u, .agent ins {
+            text-decoration: underline;
+        }
+        .agent a {
+            color: #2e3a59;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+        .agent a:hover {
+            color: #1c2740;
+        }
+        .agent ul, .agent ol {
+            margin: 6px 0 6px 0;
+            padding-left: 20px;
+        }
+        .agent li {
+            margin-bottom: 4px;
+        }
+        .agent h1, .agent h2, .agent h3 {
+            margin: 8px 0 4px 0;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .agent code {
+            background-color: #d8d8d8;
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .agent pre {
+            background-color: #d8d8d8;
+            border-radius: 8px;
+            padding: 10px;
+            overflow-x: auto;
+            margin: 6px 0;
+        }
+        .agent pre code {
+            background: none;
+            padding: 0;
+        }
+        .agent blockquote {
+            border-left: 3px solid #aaa;
+            margin: 6px 0;
+            padding-left: 10px;
+            color: #555;
+        }
+        .agent hr {
+            border: none;
+            border-top: 1px solid #ccc;
+            margin: 8px 0;
+        }
+        /* ── End markdown styles ── */
+
         .typing-indicator {
             align-self: flex-start;
             background-color: #eeeeee;
@@ -94,44 +147,38 @@
             gap: 8px;
         }
 
-        /* Container for the animated typing dots */
         .typing-dots {
             display: flex;
             gap: 3px;
         }
 
-        /* Individual animated dots */
         .dot {
             width: 6px;
             height: 6px;
             background-color: #999;
             border-radius: 50%;
-            animation: typing 1.4s infinite; /* Bounce animation */
+            animation: typing 1.4s infinite;
         }
 
-        /* Stagger the animation for each dot */
         .dot:nth-child(1) { animation-delay: 0s; }
         .dot:nth-child(2) { animation-delay: 0.2s; }
         .dot:nth-child(3) { animation-delay: 0.4s; }
 
-        /* Keyframes for the bouncing dot animation */
         @keyframes typing {
             0%, 60%, 100% { transform: translateY(0); }
             30% { transform: translateY(-4px); }
         }
 
-        /* Error message styling */
         .error-message {
             align-self: flex-start;
-            background-color: #f8d7da; /* Light red background */
-            color: #721c24; /* Dark red text */
+            background-color: #f8d7da;
+            color: #721c24;
             padding: 10px 14px;
             border-radius: 20px;
             font-size: 14px;
             max-width: 75%;
         }
 
-        /* Input area at the bottom of the chat */
         .chat-input {
             display: flex;
             padding: 10px;
@@ -139,21 +186,18 @@
             background-color: #fafafa;
         }
 
-        /* Text input field styling */
         .chat-input input {
-            flex: 1; /* Takes up most of the space */
+            flex: 1;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 20px;
             outline: none;
         }
 
-        /* Input field focus state */
         .chat-input input:focus {
             border-color: #2e3a59;
         }
 
-        /* Send button styling */
         .chat-input button {
             margin-left: 10px;
             padding: 10px 20px;
@@ -164,26 +208,22 @@
             cursor: pointer;
         }
 
-        /* Send button hover effect */
         .chat-input button:hover {
             background-color: #1c2740;
         }
 
-        /* Disabled send button styling */
         .chat-input button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
         }
 
-        /* Mobile responsiveness - adjusts layout for smaller screens */
         @media (max-width: 768px) {
             body {
                 padding: 20px;
             }
-
             .chat-container {
                 width: 500px;
-                max-width: 99%; /* Fits smaller screens */
+                max-width: 99%;
                 height: 700px;
                 max-height: 700px;
             }
@@ -191,166 +231,143 @@
     </style>
 </head>
 <body>
-	<!-- Main chat container structure -->
-	<div class="chat-container">
-	  <!-- Header showing agent name -->
-	  <div class="chat-header">Support Agent</div>
+    <div class="chat-container">
+        <div class="chat-header">Support Agent</div>
 
-	  <!-- Chat messages area -->
-	  <div class="chat-body" id="chatBody">
-		<div class="message agent">
-		  Welcome! I have access to the complete Employee User Manual and can help you understand how to use our systems, navigate features, or find specific procedures. How can I assist you?
-		</div>
-	  </div>
+        <div class="chat-body" id="chatBody">
+            <div class="message agent">
+                Welcome! I have access to the complete Employee User Manual and can help you understand how to use our systems, navigate features, or find specific procedures. How can I assist you?
+            </div>
+        </div>
 
-	  <!-- Input area for user messages -->
-	  <div class="chat-input">
-		<input
-		  type="text"
-		  id="chatInput"
-		  placeholder="Type your message…"
-		  maxlength="500"
-		/>
-		<!-- IMPORTANT: add class="send-btn" and remove inline onclick -->
-		<button class="send-btn">Send</button>
-	  </div>
-	</div>
+        <div class="chat-input">
+            <input
+                type="text"
+                id="chatInput"
+                placeholder="Type your message…"
+                maxlength="500"
+            />
+            <button class="send-btn">Send</button>
+        </div>
+    </div>
 
-<!-- script LAST so DOM elements exist -->
-<!-- put this just before </body> -->
-	<script>
-		(() => {
-		  /* ---------- DOM ---------- */
-		  const chatBody  = document.getElementById('chatBody');
-		  const chatInput = document.getElementById('chatInput');
-		  const sendBtn   = document.querySelector('.send-btn');      // ← works now
+    <script>
+        (() => {
+            /* ---------- Configure marked.js ---------- */
+            marked.setOptions({
+                breaks: true,       // single newline = <br>
+                gfm: true,          // GitHub-flavored markdown (tables, strikethrough, etc.)
+            });
 
-		  /* ---------- State ---------- */
-		  const conversationHistory = [
-			{ role: 'system', content: 'You are a helpful CRM assistant.' }
-		  ];
+            /* ---------- DOM ---------- */
+            const chatBody  = document.getElementById('chatBody');
+            const chatInput = document.getElementById('chatInput');
+            const sendBtn   = document.querySelector('.send-btn');
 
-		  /* ---------- Helpers ---------- */
-		  const getCookie = name =>
-			document.cookie.split('; ')
-			  .find(c => c.startsWith(name + '='))?.split('=')[1] || '';
+            /* ---------- State ---------- */
+            const conversationHistory = [
+                { role: 'system', content: 'You are a helpful CRM assistant.' }
+            ];
 
-		  function addMessage(role, text) {
-			const div = document.createElement('div');
-			div.className = `message ${role === 'user' ? 'user' : 'agent'}`;
-			div.textContent = text;
-			chatBody.appendChild(div);
-			chatBody.scrollTop = chatBody.scrollHeight;
-		  }
+            /* ---------- Helpers ---------- */
+            const getCookie = name =>
+                document.cookie.split('; ')
+                    .find(c => c.startsWith(name + '='))?.split('=')[1] || '';
 
-		  /* ---------- Core ---------- */
-		  async function sendMessage() {
-			const userMsg = chatInput.value.trim();
-			if (!userMsg) return;
+            function addMessage(role, text) {
+                const div = document.createElement('div');
 
-			addMessage('user', userMsg);
-			chatInput.value = '';
-			conversationHistory.push({ role: 'user', content: userMsg });
+                if (role === 'user') {
+                    // User messages: plain text (no markdown needed)
+                    div.className = 'message user';
+                    div.textContent = text;
+                } else {
+                    // Agent messages: render markdown to HTML
+                    div.className = 'message agent';
+                    div.innerHTML = marked.parse(text);
 
-			try {
-			  const rsp = await fetch('/chat-proxy/', {
-				method: 'POST',
-				headers: {
-				  'Content-Type': 'application/json',
-				  'X-CSRFToken': getCookie('csrftoken')
-				},
-				body: JSON.stringify({ messages: conversationHistory })
-			  });
+                    // Make all links open in a new tab safely
+                    div.querySelectorAll('a').forEach(a => {
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                    });
+                }
 
-			  if (!rsp.ok) throw new Error('Server error');
-			  const data  = await rsp.json();
-			  const aiMsg = data.choices[0].message.content;
+                chatBody.appendChild(div);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
 
-			  conversationHistory.push({ role: 'assistant', content: aiMsg });
-			  addMessage('assistant', aiMsg);
+            function showTyping() {
+                const div = document.createElement('div');
+                div.className = 'typing-indicator';
+                div.id = 'typingIndicator';
+                div.innerHTML = `
+                    <span>Thinking</span>
+                    <div class="typing-dots">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>`;
+                chatBody.appendChild(div);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
 
-			} catch (err) {
-			  console.error(err);
-			  addMessage('agent', '⚠️ Sorry, something went wrong.');
-			}
-		  }
+            function hideTyping() {
+                const el = document.getElementById('typingIndicator');
+                if (el) el.remove();
+            }
 
-		  /* ---------- Events ---------- */
-		  sendBtn.addEventListener('click', sendMessage);
-		  chatInput.addEventListener('keypress', e => {
-			if (e.key === 'Enter' && !e.shiftKey) {
-			  e.preventDefault();
-			  sendMessage();
-			}
-		  });
+            /* ---------- Core ---------- */
+            async function sendMessage() {
+                const userMsg = chatInput.value.trim();
+                if (!userMsg) return;
 
-		  chatInput.focus();
-		})();
-/*	
-	(function(){
-	  function getCookie(name){
-		let v=null; if(!document.cookie) return v;
-		for(let c of document.cookie.split(";")){
-		  c=c.trim();
-		  if(c.startsWith(name+"=")){ v=decodeURIComponent(c.slice(name.length+1)); break; }
-		}
-		return v;
-	  }
-	  function descriptorFor(el){
-		if(!el) return "UNKNOWN";
-		const t = el.closest?.('[data-track], a, button, [role="button"], input, textarea, select') || el;
-		const tag = (t.tagName || "NODE").toUpperCase();
-		const id = t.id ? `#${t.id}` : "";
-		const cls = (t.className && typeof t.className === "string") ? "."+t.className.trim().split(/\s+/).join(".") : "";
-		const label = t.getAttribute?.("aria-label") || t.getAttribute?.("title") || "";
-		const text = (t.innerText || "").trim().slice(0,50);
-		const name = t.getAttribute?.("name") || "";
-		let extra = label || name || text;
-		if (extra) extra = ` - "${extra}"`;
-		return `${tag}${id}${cls}${extra}`;
-	  }
-	  function sendEvent(eventType, element, value, page, keepalive){
-		const payload = {
-		  username: getCookie("username") || "",
-		  event_type: eventType,
-		  element: element,
-		  value: value,
-		  page: page
-		};
-		fetch("/track-event/", {
-		  method: "POST",
-		  credentials: "same-origin",
-		  keepalive: !!keepalive,
-		  headers: {
-			"Content-Type": "application/json",
-			"X-CSRFToken": getCookie("csrftoken")
-		  },
-		  body: JSON.stringify(payload)
-		}).catch(()=>{});
-	  }
+                addMessage('user', userMsg);
+                chatInput.value = '';
+                sendBtn.disabled = true;
+                conversationHistory.push({ role: 'user', content: userMsg });
 
-	  // clicks (capture early; use keepalive if navigating)
-	  document.addEventListener("click", function(e){
-		let target = e.target instanceof Element ? e.target : document.elementFromPoint(e.clientX, e.clientY);
-		const desc = descriptorFor(target);
-		const a = target?.closest && target.closest("a[href]");
-		const willNav = !!a && a.getAttribute("href") && a.target !== "_blank" && !a.hasAttribute("download");
-		sendEvent("click", desc, "", window.location.pathname, willNav);
-	  }, true);
+                showTyping();
 
-	  // typing
-	  document.addEventListener("input", function(e){
-		const el = e.target;
-		if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
-		  sendEvent("input", descriptorFor(el), el.value || "", window.location.pathname, false);
-		}
-	  });
+                try {
+                    const rsp = await fetch('/chat-proxy/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ messages: conversationHistory })
+                    });
 
-	  // optional pageview
-	  document.addEventListener("DOMContentLoaded", function(){
-		sendEvent("pageview", "DOCUMENT", "", window.location.pathname, false);
-	  });
-	})();*/
-	</script>
+                    if (!rsp.ok) throw new Error('Server error');
+                    const data  = await rsp.json();
+                    const aiMsg = data.choices[0].message.content;
+
+                    conversationHistory.push({ role: 'assistant', content: aiMsg });
+                    hideTyping();
+                    addMessage('assistant', aiMsg);
+
+                } catch (err) {
+                    console.error(err);
+                    hideTyping();
+                    addMessage('agent', '⚠️ Sorry, something went wrong. Please try again.');
+                } finally {
+                    sendBtn.disabled = false;
+                    chatInput.focus();
+                }
+            }
+
+            /* ---------- Events ---------- */
+            sendBtn.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            chatInput.focus();
+        })();
+    </script>
 </body>
 </html>

@@ -1,12 +1,13 @@
 # clientmanager/rag_engine.py
 import re
 import os
+import io
 import numpy as np
 from functools import lru_cache
 from typing import List, Dict
 import logging
+import requests
 
-from django.conf import settings
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 
@@ -14,16 +15,25 @@ logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────
 # 🔧 CONFIGURATION
-PDF_PATH = os.path.join(
-    settings.BASE_DIR,
-    'clientmanager', 'static', 'clientmanager', 'assets', 'docs',
-    'EMPLOYEE USER MANUAL.pdf'
-)
+PDF_URL = "https://crmsystemaistmarytx.onrender.com/static/clientmanager/assets/docs/EMPLOYEE%20USER%20MANUAL.pdf"
+
+try:
+    from django.conf import settings
+    PDF_FALLBACK_PATH = os.path.join(
+        settings.BASE_DIR,
+        'clientmanager', 'static', 'clientmanager', 'assets', 'docs',
+        'EMPLOYEE USER MANUAL.pdf'
+    )
+except Exception:
+    PDF_FALLBACK_PATH = None
 # ─────────────────────────────────────────────
 
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-MIN_CHUNK_CHARS = 40   # lowered from 100 so URLs and short lines are kept
+MIN_CHUNK_CHARS = 40
 MAX_CHUNK_CHARS = 800
+
+# Regex to detect URLs anywhere in a line
+URL_RE = re.compile(r'https?://\S+')
 
 
 def _clean_text(text: str) -> str:
@@ -33,12 +43,50 @@ def _clean_text(text: str) -> str:
     return text.strip()
 
 
+def _extract_url_chunks(text: str, page_num: int) -> List[Dict]:
+    """
+    Extract dedicated chunks for every line that contains a URL.
+    This ensures URLs are never buried inside larger paragraphs and
+    always get their own embedding so they score highly on URL queries.
+
+    For example:
+        "Employee Analytics & Data Selector Hub (Advanced Reporting)
+         URL: https://crmsystemaistmarytx.onrender.com/reporting-tool/"
+
+    becomes a standalone chunk:
+        "Employee Analytics & Data Selector Hub (Advanced Reporting)
+         URL: https://crmsystemaistmarytx.onrender.com/reporting-tool/"
+    """
+    url_chunks = []
+    lines = text.split('\n')
+
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if URL_RE.search(line):
+            # Grab the line before (likely the section title) + the URL line
+            context_lines = []
+            if i > 0 and lines[i - 1].strip():
+                context_lines.append(lines[i - 1].strip())
+            context_lines.append(line)
+            # Also grab the line after if it exists and is short (e.g. "Purpose Statement")
+            if i + 1 < len(lines) and lines[i + 1].strip() and len(lines[i + 1].strip()) < 80:
+                context_lines.append(lines[i + 1].strip())
+
+            chunk_text = _clean_text(' '.join(context_lines))
+            if len(chunk_text) >= MIN_CHUNK_CHARS:
+                url_chunks.append({
+                    "text": chunk_text,
+                    "page": page_num,
+                    "is_url_chunk": True   # tag for debugging
+                })
+        i += 1
+
+    return url_chunks
+
+
 def _split_into_chunks(text: str, page_num: int) -> List[Dict]:
-    """Split text into manageable chunks, preserving short but important lines like URLs."""
-    
-    # ── FIX: Merge orphaned short lines before chunking ──
-    # Instead of splitting on double newlines (which loses short lines like URLs),
-    # we walk line by line and group them into paragraphs intelligently.
+    """Split text into manageable chunks, preserving short lines like URLs."""
     lines = text.split('\n')
     merged = []
     buffer = ""
@@ -46,7 +94,6 @@ def _split_into_chunks(text: str, page_num: int) -> List[Dict]:
     for line in lines:
         line = line.strip()
         if not line:
-            # Blank line = paragraph break
             if buffer:
                 merged.append(buffer)
                 buffer = ""
@@ -56,10 +103,8 @@ def _split_into_chunks(text: str, page_num: int) -> List[Dict]:
     if buffer:
         merged.append(buffer)
 
-    paragraphs = merged
     chunks = []
-
-    for para in paragraphs:
+    for para in merged:
         para = _clean_text(para)
         if len(para) < MIN_CHUNK_CHARS:
             continue
@@ -84,31 +129,57 @@ def _split_into_chunks(text: str, page_num: int) -> List[Dict]:
     return chunks
 
 
+def _download_pdf_bytes() -> io.BytesIO:
+    """Download PDF from URL with retry and local fallback."""
+    logger.info(f"Downloading PDF from: {PDF_URL}")
+
+    for attempt in range(2):
+        try:
+            response = requests.get(PDF_URL, timeout=60)
+            response.raise_for_status()
+            content = response.content
+
+            if not content.startswith(b'%PDF'):
+                raise ValueError(f"Not a valid PDF (starts with: {content[:20]})")
+
+            logger.info(f"PDF downloaded successfully ({len(content):,} bytes)")
+            return io.BytesIO(content)
+
+        except Exception as e:
+            logger.warning(f"Attempt {attempt + 1} failed: {e}")
+            if attempt == 1:
+                if PDF_FALLBACK_PATH and os.path.exists(PDF_FALLBACK_PATH):
+                    logger.warning("Falling back to local PDF file")
+                    with open(PDF_FALLBACK_PATH, 'rb') as f:
+                        return io.BytesIO(f.read())
+                raise RuntimeError(f"Failed to download PDF: {e}")
+
+
 def _load_pdf() -> List[Dict]:
-    """Load PDF from disk and extract chunks with page numbers."""
-    logger.info(f"Loading PDF from: {PDF_PATH}")
-
-    if not os.path.exists(PDF_PATH):
-        raise FileNotFoundError(
-            f"PDF not found at: {PDF_PATH}\n"
-            f"Make sure 'EMPLOYEE USER MANUAL.pdf' is in: "
-            f"clientmanager/static/clientmanager/assets/docs/"
-        )
-
-    reader = PdfReader(PDF_PATH)
+    """Download PDF and extract chunks with page numbers."""
+    pdf_bytes = _download_pdf_bytes()
+    reader = PdfReader(pdf_bytes)
     all_chunks = []
 
     for page_idx, page in enumerate(reader.pages, start=1):
         try:
             text = page.extract_text()
-            if text:
-                chunks = _split_into_chunks(text, page_idx)
-                all_chunks.extend(chunks)
+            if not text:
+                continue
+
+            # 1️⃣ First: extract dedicated URL chunks (high priority)
+            url_chunks = _extract_url_chunks(text, page_idx)
+            all_chunks.extend(url_chunks)
+
+            # 2️⃣ Then: normal paragraph chunks
+            para_chunks = _split_into_chunks(text, page_idx)
+            all_chunks.extend(para_chunks)
+
         except Exception as e:
             logger.warning(f"Error processing page {page_idx}: {e}")
             continue
 
-    # Remove duplicates
+    # Remove duplicates (keep first occurrence — URL chunks come first so they're preserved)
     seen = set()
     unique_chunks = []
     for chunk in all_chunks:
@@ -117,7 +188,8 @@ def _load_pdf() -> List[Dict]:
             seen.add(signature)
             unique_chunks.append(chunk)
 
-    logger.info(f"Loaded {len(unique_chunks)} chunks from {len(reader.pages)} pages")
+    url_count = sum(1 for c in unique_chunks if c.get("is_url_chunk"))
+    logger.info(f"Loaded {len(unique_chunks)} chunks ({url_count} URL chunks) from {len(reader.pages)} pages")
     return unique_chunks
 
 
@@ -130,7 +202,7 @@ def _get_model():
 
 @lru_cache(maxsize=1)
 def _build_index():
-    """Build the search index (cached)."""
+    """Build the search index (cached in memory). Called lazily on first request."""
     try:
         chunks = _load_pdf()
         model = _get_model()
@@ -177,15 +249,13 @@ def retrieve_top_k(query: str, k: int = 5) -> List[Dict]:
 
 
 def refresh_cache() -> int:
-    """Clear cache and rebuild index. Returns number of chunks loaded."""
+    """Clear cache and re-download + rebuild index."""
     try:
         _build_index.cache_clear()
         _get_model.cache_clear()
-
         chunks, _ = _build_index()
         logger.info("Cache refreshed successfully")
         return len(chunks)
-
     except Exception as e:
         logger.error(f"Error refreshing cache: {e}")
         raise
@@ -197,15 +267,16 @@ def get_index_info() -> Dict:
         chunks, embeddings = _build_index()
         pages = set(chunk["page"] for chunk in chunks)
         avg_length = np.mean([len(chunk["text"]) for chunk in chunks])
+        url_count = sum(1 for c in chunks if c.get("is_url_chunk"))
 
         return {
             "total_chunks": len(chunks),
+            "url_chunks": url_count,
             "total_pages": len(pages),
             "embedding_dimension": embeddings.shape[1],
             "avg_chunk_length": int(avg_length),
             "model_name": EMBED_MODEL
         }
-
     except Exception as e:
         logger.error(f"Error getting index info: {e}")
         return {"error": str(e)}
@@ -214,23 +285,16 @@ def get_index_info() -> Dict:
 def health_check() -> Dict:
     """Check if the RAG engine is working properly."""
     try:
-        if not os.path.exists(PDF_PATH):
-            return {
-                "status": "error",
-                "message": f"PDF not found at: {PDF_PATH}"
-            }
-
         model = _get_model()
-        results = retrieve_top_k("test", k=1)
+        results = retrieve_top_k("reporting tool url", k=1)
 
         return {
             "status": "healthy",
-            "pdf_path": PDF_PATH,
+            "pdf_source": PDF_URL,
             "model_loaded": True,
             "can_retrieve": len(results) > 0,
             "index_info": get_index_info()
         }
-
     except Exception as e:
         return {
             "status": "error",
