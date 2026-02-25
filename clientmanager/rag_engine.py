@@ -6,41 +6,43 @@ import numpy as np
 from functools import lru_cache
 from typing import List, Dict
 import logging
-import requests
 
 from pypdf import PdfReader
-from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────
 # 🔧 CONFIGURATION
-PDF_URL = "https://crmsystemaistmarytx.onrender.com/static/clientmanager/assets/docs/EMPLOYEE%20USER%20MANUAL.pdf"
-
 try:
     from django.conf import settings
+
     PDF_FALLBACK_PATH = os.path.join(
         settings.BASE_DIR,
-        'clientmanager', 'static', 'clientmanager', 'assets', 'docs',
-        'EMPLOYEE USER MANUAL.pdf'
+        "clientmanager",
+        "static",
+        "clientmanager",
+        "assets",
+        "docs",
+        "EMPLOYEE USER MANUAL.pdf",
     )
 except Exception:
     PDF_FALLBACK_PATH = None
-# ─────────────────────────────────────────────
 
-#EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-EMBED_MODEL = "sentence-transformers/paraphrase-MiniLM-L3-v2" # Lighter model
+# Use OpenAI embeddings instead of sentence-transformers to avoid Render OOM
+OPENAI_EMBED_MODEL = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small")
+
 MIN_CHUNK_CHARS = 40
 MAX_CHUNK_CHARS = 800
 
 # Regex to detect URLs anywhere in a line
-URL_RE = re.compile(r'https?://\S+')
+URL_RE = re.compile(r"https?://\S+")
+# ─────────────────────────────────────────────
 
 
 def _clean_text(text: str) -> str:
     """Clean and normalize text."""
-    text = text.replace('\xa0', ' ')
-    text = re.sub(r'\s+', ' ', text)
+    text = text.replace("\xa0", " ")
+    text = re.sub(r"\s+", " ", text)
     return text.strip()
 
 
@@ -49,38 +51,26 @@ def _extract_url_chunks(text: str, page_num: int) -> List[Dict]:
     Extract dedicated chunks for every line that contains a URL.
     This ensures URLs are never buried inside larger paragraphs and
     always get their own embedding so they score highly on URL queries.
-
-    For example:
-        "Employee Analytics & Data Selector Hub (Advanced Reporting)
-         URL: https://crmsystemaistmarytx.onrender.com/reporting-tool/"
-
-    becomes a standalone chunk:
-        "Employee Analytics & Data Selector Hub (Advanced Reporting)
-         URL: https://crmsystemaistmarytx.onrender.com/reporting-tool/"
     """
     url_chunks = []
-    lines = text.split('\n')
+    lines = text.split("\n")
 
     i = 0
     while i < len(lines):
         line = lines[i].strip()
         if URL_RE.search(line):
-            # Grab the line before (likely the section title) + the URL line
             context_lines = []
             if i > 0 and lines[i - 1].strip():
                 context_lines.append(lines[i - 1].strip())
             context_lines.append(line)
-            # Also grab the line after if it exists and is short (e.g. "Purpose Statement")
             if i + 1 < len(lines) and lines[i + 1].strip() and len(lines[i + 1].strip()) < 80:
                 context_lines.append(lines[i + 1].strip())
 
-            chunk_text = _clean_text(' '.join(context_lines))
+            chunk_text = _clean_text(" ".join(context_lines))
             if len(chunk_text) >= MIN_CHUNK_CHARS:
-                url_chunks.append({
-                    "text": chunk_text,
-                    "page": page_num,
-                    "is_url_chunk": True   # tag for debugging
-                })
+                url_chunks.append(
+                    {"text": chunk_text, "page": page_num, "is_url_chunk": True}
+                )
         i += 1
 
     return url_chunks
@@ -88,7 +78,7 @@ def _extract_url_chunks(text: str, page_num: int) -> List[Dict]:
 
 def _split_into_chunks(text: str, page_num: int) -> List[Dict]:
     """Split text into manageable chunks, preserving short lines like URLs."""
-    lines = text.split('\n')
+    lines = text.split("\n")
     merged = []
     buffer = ""
 
@@ -111,7 +101,7 @@ def _split_into_chunks(text: str, page_num: int) -> List[Dict]:
             continue
 
         if len(para) > MAX_CHUNK_CHARS:
-            sentences = re.split(r'(?<=[.!?])\s+', para)
+            sentences = re.split(r"(?<=[.!?])\s+", para)
             current_chunk = ""
 
             for sentence in sentences:
@@ -130,35 +120,29 @@ def _split_into_chunks(text: str, page_num: int) -> List[Dict]:
     return chunks
 
 
-def _download_pdf_bytes() -> io.BytesIO:
-    """Download PDF from URL with retry and local fallback."""
-    logger.info(f"Downloading PDF from: {PDF_URL}")
+def _load_pdf_from_disk() -> io.BytesIO:
+    """
+    Load the PDF from disk only (Render-safe; avoids 0-byte HTTP fetch issues).
+    """
+    if not PDF_FALLBACK_PATH:
+        raise RuntimeError("PDF_FALLBACK_PATH could not be constructed (settings unavailable).")
 
-    for attempt in range(2):
-        try:
-            response = requests.get(PDF_URL, timeout=60)
-            response.raise_for_status()
-            content = response.content
+    if not os.path.exists(PDF_FALLBACK_PATH):
+        raise FileNotFoundError(f"PDF not found at: {PDF_FALLBACK_PATH}")
 
-            if not content.startswith(b'%PDF'):
-                raise ValueError(f"Not a valid PDF (starts with: {content[:20]})")
+    with open(PDF_FALLBACK_PATH, "rb") as f:
+        content = f.read()
 
-            logger.info(f"PDF downloaded successfully ({len(content):,} bytes)")
-            return io.BytesIO(content)
+    if not content.startswith(b"%PDF"):
+        raise ValueError(f"Local file is not a valid PDF (starts with: {content[:20]})")
 
-        except Exception as e:
-            logger.warning(f"Attempt {attempt + 1} failed: {e}")
-            if attempt == 1:
-                if PDF_FALLBACK_PATH and os.path.exists(PDF_FALLBACK_PATH):
-                    logger.warning("Falling back to local PDF file")
-                    with open(PDF_FALLBACK_PATH, 'rb') as f:
-                        return io.BytesIO(f.read())
-                raise RuntimeError(f"Failed to download PDF: {e}")
+    logger.info(f"Loaded PDF from disk: {PDF_FALLBACK_PATH} ({len(content):,} bytes)")
+    return io.BytesIO(content)
 
 
 def _load_pdf() -> List[Dict]:
-    """Download PDF and extract chunks with page numbers."""
-    pdf_bytes = _download_pdf_bytes()
+    """Load PDF from disk and extract chunks with page numbers."""
+    pdf_bytes = _load_pdf_from_disk()
     reader = PdfReader(pdf_bytes)
     all_chunks = []
 
@@ -168,11 +152,11 @@ def _load_pdf() -> List[Dict]:
             if not text:
                 continue
 
-            # 1️⃣ First: extract dedicated URL chunks (high priority)
+            # 1️⃣ Dedicated URL chunks first
             url_chunks = _extract_url_chunks(text, page_idx)
             all_chunks.extend(url_chunks)
 
-            # 2️⃣ Then: normal paragraph chunks
+            # 2️⃣ Normal paragraph chunks
             para_chunks = _split_into_chunks(text, page_idx)
             all_chunks.extend(para_chunks)
 
@@ -194,25 +178,91 @@ def _load_pdf() -> List[Dict]:
     return unique_chunks
 
 
+def _cosine_sim_matrix(embeddings: np.ndarray, query_vec: np.ndarray) -> np.ndarray:
+    """
+    embeddings: (n, d) normalized
+    query_vec: (d,) normalized
+    returns: (n,) cosine similarities via dot product
+    """
+    return np.dot(embeddings, query_vec)
+
+
+def _normalize_rows(x: np.ndarray) -> np.ndarray:
+    norms = np.linalg.norm(x, axis=1, keepdims=True) + 1e-12
+    return x / norms
+
+
+def _normalize_vec(x: np.ndarray) -> np.ndarray:
+    n = np.linalg.norm(x) + 1e-12
+    return x / n
+
+
 @lru_cache(maxsize=1)
-def _get_model():
-    """Get the sentence transformer model (cached)."""
-    logger.info(f"Loading embedding model: {EMBED_MODEL}")
-    return SentenceTransformer(EMBED_MODEL)
+def _get_openai_client():
+    """
+    Cached OpenAI client.
+    Supports both new and older SDKs.
+    """
+    # New SDK: from openai import OpenAI
+    try:
+        from openai import OpenAI  # type: ignore
+
+        return OpenAI()
+    except Exception:
+        pass
+
+    # Older SDK: import openai
+    try:
+        import openai  # type: ignore
+
+        return openai
+    except Exception as e:
+        raise RuntimeError(
+            "OpenAI SDK not installed. Add `openai` to requirements.txt."
+        ) from e
+
+
+def _embed_texts_openai(texts: List[str]) -> np.ndarray:
+    """
+    Create embeddings using OpenAI (no local model).
+    Returns float32 matrix (n, d), normalized.
+    """
+    if not texts:
+        return np.zeros((0, 0), dtype=np.float32)
+
+    client = _get_openai_client()
+
+    # New SDK path
+    if hasattr(client, "embeddings") and hasattr(client.embeddings, "create"):
+        resp = client.embeddings.create(model=OPENAI_EMBED_MODEL, input=texts)
+        vecs = [d.embedding for d in resp.data]
+        mat = np.array(vecs, dtype=np.float32)
+        return _normalize_rows(mat)
+
+    # Older SDK path
+    if hasattr(client, "Embedding") and hasattr(client.Embedding, "create"):
+        resp = client.Embedding.create(model=OPENAI_EMBED_MODEL, input=texts)
+        vecs = [d["embedding"] for d in resp["data"]]
+        mat = np.array(vecs, dtype=np.float32)
+        return _normalize_rows(mat)
+
+    raise RuntimeError("Unsupported OpenAI client; could not call embeddings API.")
 
 
 @lru_cache(maxsize=1)
 def _build_index():
-    """Build the search index (cached in memory). Called lazily on first request."""
+    """
+    Build the search index (cached in memory). Called lazily on first request.
+    Uses OpenAI embeddings to avoid Render OOM from sentence-transformers.
+    """
     try:
         chunks = _load_pdf()
-        model = _get_model()
 
         texts = [chunk["text"] for chunk in chunks]
-        logger.info(f"Creating embeddings for {len(texts)} chunks...")
-        embeddings = model.encode(texts, normalize_embeddings=True)
+        logger.info(f"Creating OpenAI embeddings for {len(texts)} chunks using {OPENAI_EMBED_MODEL}...")
+        embeddings = _embed_texts_openai(texts)
 
-        logger.info("Index built successfully")
+        logger.info("Index built successfully (OpenAI embeddings)")
         return chunks, np.array(embeddings, dtype=np.float32)
 
     except Exception as e:
@@ -227,19 +277,22 @@ def retrieve_top_k(query: str, k: int = 5) -> List[Dict]:
 
     try:
         chunks, embeddings = _build_index()
-        model = _get_model()
-        query_embedding = model.encode([query.strip()], normalize_embeddings=True)[0]
 
-        similarities = np.dot(embeddings, query_embedding)
+        query_vec = _embed_texts_openai([query.strip()])[0]
+        query_vec = _normalize_vec(query_vec.astype(np.float32, copy=False))
+
+        similarities = _cosine_sim_matrix(embeddings, query_vec)
         top_indices = np.argsort(similarities)[::-1][:k]
 
         results = []
         for idx in top_indices:
-            results.append({
-                "text": chunks[idx]["text"],
-                "page": chunks[idx]["page"],
-                "score": float(similarities[idx])
-            })
+            results.append(
+                {
+                    "text": chunks[idx]["text"],
+                    "page": chunks[idx]["page"],
+                    "score": float(similarities[idx]),
+                }
+            )
 
         logger.debug(f"Retrieved {len(results)} chunks for query: '{query[:50]}...'")
         return results
@@ -250,13 +303,16 @@ def retrieve_top_k(query: str, k: int = 5) -> List[Dict]:
 
 
 def refresh_cache() -> int:
-    """Clear cache and re-download + rebuild index."""
+    """Clear cache and reload + rebuild index."""
     try:
         _build_index.cache_clear()
-        _get_model.cache_clear()
+        # _get_openai_client is safe to keep cached, but clearing it is fine too
+        _get_openai_client.cache_clear()
+
         chunks, _ = _build_index()
         logger.info("Cache refreshed successfully")
         return len(chunks)
+
     except Exception as e:
         logger.error(f"Error refreshing cache: {e}")
         raise
@@ -267,16 +323,17 @@ def get_index_info() -> Dict:
     try:
         chunks, embeddings = _build_index()
         pages = set(chunk["page"] for chunk in chunks)
-        avg_length = np.mean([len(chunk["text"]) for chunk in chunks])
+        avg_length = np.mean([len(chunk["text"]) for chunk in chunks]) if chunks else 0
         url_count = sum(1 for c in chunks if c.get("is_url_chunk"))
 
         return {
             "total_chunks": len(chunks),
             "url_chunks": url_count,
             "total_pages": len(pages),
-            "embedding_dimension": embeddings.shape[1],
+            "embedding_dimension": int(embeddings.shape[1]) if embeddings.ndim == 2 else None,
             "avg_chunk_length": int(avg_length),
-            "model_name": EMBED_MODEL
+            "model_name": OPENAI_EMBED_MODEL,
+            "pdf_source": PDF_FALLBACK_PATH,
         }
     except Exception as e:
         logger.error(f"Error getting index info: {e}")
@@ -286,19 +343,21 @@ def get_index_info() -> Dict:
 def health_check() -> Dict:
     """Check if the RAG engine is working properly."""
     try:
-        model = _get_model()
+        # sanity: can we build index + retrieve?
         results = retrieve_top_k("reporting tool url", k=1)
 
         return {
             "status": "healthy",
-            "pdf_source": PDF_URL,
-            "model_loaded": True,
+            "pdf_source": PDF_FALLBACK_PATH,
+            "embedding_model": OPENAI_EMBED_MODEL,
             "can_retrieve": len(results) > 0,
-            "index_info": get_index_info()
+            "index_info": get_index_info(),
         }
     except Exception as e:
         return {
             "status": "error",
             "message": str(e),
-            "error_type": type(e).__name__
+            "error_type": type(e).__name__,
+            "pdf_source": PDF_FALLBACK_PATH,
+            "embedding_model": OPENAI_EMBED_MODEL,
         }
