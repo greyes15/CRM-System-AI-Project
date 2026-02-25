@@ -28,7 +28,8 @@ except Exception:
     PDF_FALLBACK_PATH = None
 # ─────────────────────────────────────────────
 
-EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+#EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+EMBED_MODEL = "sentence-transformers/paraphrase-MiniLM-L3-v2" # Lighter model
 MIN_CHUNK_CHARS = 40
 MAX_CHUNK_CHARS = 800
 

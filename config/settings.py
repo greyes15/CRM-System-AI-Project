@@ -144,6 +144,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
+# WhiteNoise
+WHITENOISE_MAX_AGE = 31536000
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
