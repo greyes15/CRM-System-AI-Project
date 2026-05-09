@@ -1110,30 +1110,6 @@
                 return;
             }
             
-            const selectedData = Array.from(selectedRows).map(index => employeeData[index]);
-            const columnsArray = Array.from(selectedColumns);
-            
-            let csv = columnsArray.join(',') + '\n';
-            
-            selectedData.forEach(employee => {
-                const row = columnsArray.map(column => {
-                    const value = employee[column];
-                    // Wrap in quotes if contains comma
-                    return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
-                });
-                csv += row.join(',') + '\n';
-            });
-            
-            // Download the CSV
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `custom_employee_report_${Date.now()}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
         }
 
         // Copy to clipboard
