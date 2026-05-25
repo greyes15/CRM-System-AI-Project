@@ -1,7 +1,26 @@
 # clientmanager/admin.py
+import csv
 from django.contrib import admin
+from django.http import HttpResponse
 from django.utils.text import Truncator
-from .models import UserEvent
+from .models import UserEvent, ChatMessage
+
+
+@admin.action(description="Export selected records to CSV")
+def export_as_csv(modeladmin, request, queryset):
+    meta = modeladmin.model._meta
+    field_names = [field.name for field in meta.fields]
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{meta.model_name}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(field_names)
+
+    for obj in queryset:
+        writer.writerow([getattr(obj, field) for field in field_names])
+
+    return response
 
 @admin.register(UserEvent)
 class UserEventAdmin(admin.ModelAdmin):
@@ -20,6 +39,7 @@ class UserEventAdmin(admin.ModelAdmin):
     ordering = ("-timestamp", "-id")
     date_hierarchy = "timestamp"
     list_per_page = 100
+    actions = [export_as_csv]
 
     # Right-side filters
     list_filter = ("event_type", "page", "username", "ip_address", "timestamp")
@@ -63,3 +83,23 @@ class UserEventAdmin(admin.ModelAdmin):
     def value_short(self, obj):
         return Truncator(obj.value or "").chars(60)
     value_short.short_description = "value"
+
+
+@admin.register(ChatMessage)
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ("id", "timestamp", "username", "message_type", "page", "ip_address", "content_short")
+    ordering = ("-timestamp", "-id")
+    date_hierarchy = "timestamp"
+    list_per_page = 100
+    actions = [export_as_csv]
+
+    list_filter = ("message_type", "page", "username", "ip_address", "timestamp")
+    search_fields = ("username", "content", "ip_address", "user__username")
+
+    list_select_related = ("user",)
+    raw_id_fields = ("user",)
+    readonly_fields = ("user", "username", "ip_address", "page", "message_type", "content", "timestamp")
+
+    def content_short(self, obj):
+        return Truncator(obj.content or "").chars(80)
+    content_short.short_description = "content"
