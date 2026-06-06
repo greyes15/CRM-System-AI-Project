@@ -1,5 +1,41 @@
-venv/ 
-__pycache__/ 
-*.pyc 
-.env 
-db.sqlite3 
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.*
+local_settings.py
+
+# Databases
+*.sqlite3
+*.sqlite
+*.db
+*.db-shm
+*.db-wal
+db_*.sqlite3
+db_backup*
+
+# Django
+/media/
+/staticfiles/
+*.log
+
+# Exports / data dumps
+*.csv
+*.json
+*.xml
+*.xlsx
+*.xls
+fixtures/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

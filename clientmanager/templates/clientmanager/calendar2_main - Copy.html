@@ -59,7 +59,12 @@
 <div id="dayPopup" class="popup">
   <div class="popup-header" id="dayPopupHeader">Events <span class="close-btn" onclick="closePopup('dayPopup')">✖</span></div>
 </div>
-<div id="confirmPopup" class="popup"></div>
+<div id="confirmPopup" class="popup">
+  <div class="popup-header" id="confirmPopupHeader">Conflict Detected <span class="close-btn" onclick="closePopup('confirmPopup')">✖</span></div>
+  <p>There’s a potential conflict with an existing event. Proceed anyway?</p>
+  <button onclick="confirmSaveNote(true)">OK</button>
+  <button onclick="confirmSaveNote(false)">Cancel</button>
+</div>
 <script>
 		
 	(function(){
@@ -170,21 +175,6 @@
 	  { day: 29, month, year, title: "Leadership Roundtable", desc: "Collaborative planning session focused on elevating service standards", startTime: "15:30", endTime: "16:15", color: "#f87171" }, // rose
 	  { day: 30, month, year, title: "Client Success Forum", desc: "Highlight success stories and strategic partnerships", startTime: "10:00", endTime: "11:15", color: "#7dd3fc" } // sky blue
 	];
-
-	// Include the conflicting Task 2 event in defaults
-	events.push({ day: 14, month, year, title: "Client Review Call", desc: "Quarterly client feedback session", startTime: "14:00", endTime: "15:00", color: "#ff6b6b" });
-
-	// Load persisted events from localStorage, falling back to defaults above
-	(function() {
-	  const stored = localStorage.getItem('calendarEvents');
-	  if (stored) {
-	    try { events = JSON.parse(stored); } catch(e) {}
-	  }
-	})();
-
-	function saveEvents() {
-	  localStorage.setItem('calendarEvents', JSON.stringify(events));
-	}
 
 	let currentDay = null; // make sure this exists since it's referenced when adding a note
 	let scrollOffsets = Array(42).fill(0);
@@ -429,7 +419,6 @@ canvas.addEventListener('mouseup', (e) => {
       dragEvent.day = day;
     }
     dragEvent = null;
-    saveEvents();
     drawGrid();
   }
 });
@@ -439,37 +428,9 @@ function trySaveNote() {
   const desc = document.getElementById('noteDesc').value;
   const startTime = document.getElementById('noteStartTime').value;
   const endTime = document.getElementById('noteEndTime').value;
-
-  const conflicts = events.filter(ev =>
-    ev.day === currentDay && ev.month === month && ev.year === year &&
-    (
-      (startTime >= ev.startTime && startTime < ev.endTime) ||
-      (endTime > ev.startTime && endTime <= ev.endTime) ||
-      (startTime <= ev.startTime && endTime >= ev.endTime)
-    )
-  );
-
-  if (conflicts.length > 0) {
-    const list = conflicts.map(ev =>
-      `<div style="background:#fff3cd;border-left:4px solid #f59e0b;padding:6px 8px;margin:6px 0;border-radius:3px;">
-        <strong>${ev.title}</strong><br>
-        <span style="font-size:12px;color:#555;">${ev.startTime} – ${ev.endTime}</span>
-      </div>`
-    ).join('');
-
-    const popup = document.getElementById('confirmPopup');
-    popup.innerHTML = `
-      <div class="popup-header" id="confirmPopupHeader">
-        ⚠ Scheduling Conflict
-        <span class="close-btn" onclick="closePopup('confirmPopup')">✖</span>
-      </div>
-      <p style="margin:8px 0 4px;">Your event overlaps with ${conflicts.length === 1 ? 'this event' : 'these events'}:</p>
-      ${list}
-      <button onclick="closePopup('confirmPopup')">Close</button>
-    `;
-    popup.style.left = '150px';
-    popup.style.top = '150px';
-    popup.style.display = 'block';
+  const conflict = events.some(ev => ev.day === currentDay && ev.month === month && ev.year === year && ((startTime >= ev.startTime && startTime < ev.endTime) || (endTime > ev.startTime && endTime <= ev.endTime)));
+  if (conflict) {
+    document.getElementById('confirmPopup').style.display = 'block';
     enablePopupDragging('confirmPopup');
   } else {
     confirmSaveNote(true);
@@ -508,7 +469,6 @@ function closeEditor() {
 
 function deleteEvent(index) {
   events.splice(index, 1);
-  saveEvents();
   drawGrid();
   closePopup('dayPopup');
 }
@@ -540,6 +500,20 @@ function enablePopupDragging(popupId) {
   };
 }
 
+// Clean Task 2 addition - remove the initial color picker and only allow color changes on double-click
+
+// Add the conflicting event
+events.push({
+  day: 14, 
+  month, 
+  year, 
+  title: "Client Review Call", 
+  desc: "Quarterly client feedback session", 
+  startTime: "14:00", 
+  endTime: "15:00", 
+  color: "#ff6b6b"
+});
+
 // Override the existing confirmSaveNote function to check for Task 2 completion
 const originalConfirmSaveNote = confirmSaveNote;
 confirmSaveNote = function(proceed) {
@@ -554,10 +528,9 @@ confirmSaveNote = function(proceed) {
     const color = '#ffcc00'; // Default color for initial creation
     
     events.push({ day: currentDay, month, year, title, desc, startTime, endTime, color });
-    saveEvents();
     closeEditor();
     drawGrid();
-
+    
     // Check if this was the Task 2 event (but without color requirement yet)
     const isTask2EventBase = title === "Project Status Meeting" && 
                             desc === "Bi-weekly meeting to review current project milestones and address blockers" &&
@@ -577,7 +550,6 @@ const originalUpdateColor = updateColor;
 updateColor = function(index, color) {
   if (index >= 0 && index < events.length) {
     events[index].color = color;
-    saveEvents();
     drawGrid();
     
     // Check if this completes Task 2

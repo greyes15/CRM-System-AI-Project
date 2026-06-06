@@ -568,7 +568,7 @@
                                 <label for="col-office">Office</label>
                             </div>
                             <div class="checkbox-item">
-                                <input type="checkbox" id="col-age" value="age" checked>
+                                <input type="checkbox" id="col-age" value="age">
                                 <label for="col-age">Age</label>
                             </div>
                             <div class="checkbox-item">
@@ -730,7 +730,7 @@
         ];
 
         let selectedRows = new Set();
-        let selectedColumns = new Set(['name', 'position', 'office', 'age', 'salary']);
+        let selectedColumns = new Set(['name', 'position', 'office', 'salary']);
         let dataSelector = null;
 
         // Initialize the application
@@ -897,6 +897,8 @@
                 
                 const reportType = document.getElementById('reportType');
                 const selectedReport = reportType.options[reportType.selectedIndex].text;
+                
+                alert(`Custom analytical report generated successfully!\n\nReport: ${selectedReport}\nEmployees: ${selectedRows.size} of ${employeeData.length}\nData Fields: ${selectedColumns.size}\nProcessing Time: ${processingTime} seconds`);
                 
                 // Scroll to results if they exist
                 const resultsSection = document.getElementById('resultsSection');
